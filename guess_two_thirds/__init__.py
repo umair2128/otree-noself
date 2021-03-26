@@ -1,7 +1,5 @@
 from otree.api import *
 
-c = Currency  # old name for currency; you can delete this.
-
 doc = """
 a.k.a. Keynesian beauty contest.
 Players all guess a number; whoever guesses closest to
@@ -14,7 +12,7 @@ class Constants(BaseConstants):
     players_per_group = 3
     num_rounds = 3
     name_in_url = 'guess_two_thirds'
-    jackpot = Currency(100)
+    jackpot = cu(100)
     guess_max = 100
     instructions_template = 'guess_two_thirds/instructions.html'
 
@@ -72,7 +70,7 @@ class Guess(Page):
 
 
 class ResultsWaitPage(WaitPage):
-    after_all_players_arrive = set_payoffs
+    after_all_players_arrive = 'set_payoffs'
 
 
 class Results(Page):

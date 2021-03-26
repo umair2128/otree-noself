@@ -1,7 +1,5 @@
 from otree.api import *
 
-c = Currency  # old name for currency; you can delete this.
-
 
 doc = """
 This is a one-shot "Prisoner's Dilemma". Two players are asked separately
@@ -72,7 +70,7 @@ class Decision(Page):
 
 
 class ResultsWaitPage(WaitPage):
-    after_all_players_arrive = set_payoffs
+    after_all_players_arrive = 'set_payoffs'
 
 
 class Results(Page):
