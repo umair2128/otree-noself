@@ -1,8 +1,20 @@
 from os import environ
 
 SESSION_CONFIGS = [
-    dict(name='double_auction', app_sequence=['double_auction'], num_demo_participants=4),
-    dict(name='dollar_auction', app_sequence=['dollar_auction'], num_demo_participants=3),
+    dict(
+        name='double_auction',
+        display_name="Double Auction",
+        app_sequence=['double_auction'],
+        num_units=3,
+        num_rounds=3,
+        num_demo_participants=4,
+    ),
+    dict(
+        name='dollar_auction',
+        display_name="Dollar Auction",
+        app_sequence=['dollar_auction'],
+        num_demo_participants=3,
+    ),
     dict(
         name='guess_two_thirds',
         display_name="Guess 2/3 of the average",
@@ -15,7 +27,11 @@ SESSION_CONFIGS = [
         app_sequence=['prisoner'],
         num_demo_participants=2,
     ),
-    dict(name='stroop', app_sequence=['stroop'], num_demo_participants=1),
+    dict(
+        name='stroop',
+        app_sequence=['stroop'],
+        num_demo_participants=1
+    ),
     dict(
         name='go_no_go',
         display_name='Go/No-Go task',
@@ -28,7 +44,11 @@ SESSION_CONFIGS = [
         app_sequence=['randomize_stimuli'],
         num_demo_participants=5,
     ),
-    dict(name='quiz', app_sequence=['quiz'], num_demo_participants=1),
+    dict(
+        name='quiz',
+        app_sequence=['quiz'],
+        num_demo_participants=1
+    ),
     dict(
         name='bigfive',
         display_name='Big 5 personality test',
@@ -41,13 +61,28 @@ SESSION_CONFIGS = [
         app_sequence=['nim'],
         num_demo_participants=2,
     ),
-    dict(name='rockpaperscissors', app_sequence=['rockpaperscissors'], num_demo_participants=2),
-    dict(name='tictactoe', app_sequence=['tictactoe'], num_demo_participants=2),
+    dict(
+        name='rockpaperscissors',
+        app_sequence=['rockpaperscissors'],
+        num_demo_participants=2),
+    dict(
+        name='tictactoe',
+        app_sequence=['tictactoe'],
+        num_demo_participants=2),
     dict(
         name='monty_hall',
         display_name="Monty Hall (3-door problem from 'The Price is Right')",
         app_sequence=['monty_hall'],
         num_demo_participants=1,
+    ),
+    dict(
+        name='DA',
+        display_name="My DA",
+        num_demo_participants=4,
+        num_rounds=2,
+        buyer_=[0.3, 0.75, 0.3],
+        app_sequence=['DA'],
+        doc="",
     ),
 ]
 
