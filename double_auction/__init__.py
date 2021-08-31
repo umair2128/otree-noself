@@ -14,7 +14,7 @@ import settings
 class Constants(BaseConstants):
     name_in_url = 'double_auction'
     players_per_group = None
-    num_rounds = 1
+    num_rounds = 100
     min_induced_price = 20
     num_units = 5
     eq_units_per_player = 5
@@ -339,9 +339,6 @@ def live_method(player: Player, data):
                     seconds=time.time() - group.start_timestamp,
                 )
 
-                #news = dict(buyer=buyer.id_in_group, seller=seller.id_in_group, price=price, total_units = i, time_tx=time_tx,
-                            #buyer_order_type=buyer_order_type, seller_order_type=seller_order_type, last_offer_type=last_offer_type)
-
                 total_units += 1
 
                 if buyer.current_quant != 0:
@@ -377,7 +374,6 @@ def live_method(player: Player, data):
                             seller_order_type,
                             last_offer_type
                         ])
-                    print(news)
 
                 if buyer.current_quant == 0:
                     buyer.current_offer = 0
@@ -390,9 +386,6 @@ def live_method(player: Player, data):
             if (player.is_buyer and len(asks_new)==0) or (not player.is_buyer and len(bids_new)==0):
                 break
 
-        # if match_new != []:
-        #         news = dict(buyer=buyer.id_in_group, seller=seller.id_in_group, price=price, total_units = total_units, time_tx=time_tx,
-        #                 buyer_order_type=buyer_order_type, seller_order_type=seller_order_type, last_offer_type=last_offer_type)
 
         highcharts_series = [[tx.seconds, tx.price] for tx in Transaction.filter(group=group)]
 
@@ -424,7 +417,6 @@ class WaitToStart(WaitPage):
     def after_all_players_arrive(group: Group):
         group.start_timestamp = int(time.time())
 
-
 class Trading(Page):
     live_method = live_method
 
@@ -449,7 +441,9 @@ class ResultsWaitPage(WaitPage):
 
 
 class Results(Page):
-    pass
+    @staticmethod
+    def is_displayed(player):
+        return player.round_number == Group.total_rounds
 
 
 page_sequence = [WaitToStart, Trading, ResultsWaitPage, Results]

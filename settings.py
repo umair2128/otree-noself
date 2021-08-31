@@ -8,7 +8,7 @@ SESSION_CONFIGS = [
         num_units=3,
         num_rounds=3,
         num_demo_participants=4,
-        timeout_seconds=7200,
+        timeout_seconds=600,
     ),
     dict(
         name='dollar_auction',
