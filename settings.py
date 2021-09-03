@@ -9,6 +9,7 @@ SESSION_CONFIGS = [
         num_rounds=3,
         num_demo_participants=4,
         timeout_seconds=600,
+        wait_timeout_seconds=30,
     ),
     dict(
         name='dollar_auction',
@@ -114,3 +115,4 @@ SECRET_KEY = '4387860144726'
 INSTALLED_APPS = ['otree']
 
 PARTICIPANT_FIELDS = ['stimuli', 'responses', 'reaction_times', 'order']
+SESSION_FIELDS = ['starting_price','ending_price','total_rounds','timeout_seconds','presets_template', 'seller_type1_presets', 'seller_type2_presets','buyer_type1_presets','buyer_type2_presets']

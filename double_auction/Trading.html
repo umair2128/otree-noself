@@ -26,11 +26,11 @@
                 <tbody>
                 <tr>
                     <td style="vertical-align:middle;text-align:left;"><span id="period"></span></td>
-                    <td style="vertical-align:middle;text-align:right;"><span id="role"></span></td>
+                    <td style="vertical-align:middle;text-align:right;"><b>Time remaining: </b><span class='otree-timer__time-left'></span></td>
                 </tr>
                 <tr>
-                    <td style="vertical-align:middle;text-align:left;"><span id="session_earnings"></span></td>
-                    <td style="vertical-align:middle;text-align:right;"><b>Time remaining: </b><span class='otree-timer__time-left'></span></td>
+                    <td style="vertical-align:middle;text-align:left;"><span id="period_earnings"></span></td>
+                    <td style="vertical-align:middle;text-align:right;"><span id="session_earnings"></span></td>
                 </tr>
                 </tbody>
             </table>
@@ -219,6 +219,9 @@
     let upd_bids = [];
     let upd_asks = [];
 
+    let period_earnings = 0;
+    let session_earnings = js_vars.session_payoff;
+
     let my_offer = document.getElementById('my_offer');
     let my_quant1 = document.getElementById('my_quant1');
     let my_quant2 = document.getElementById('my_quant2');
@@ -354,6 +357,8 @@
         sessionStorage.setItem("offer_c", JSON.stringify(offer_c));
         sessionStorage.setItem("quant_c", JSON.stringify(quant_c));
         sessionStorage.setItem("cur_round", JSON.stringify(this_round));
+        sessionStorage.setItem("period_earnings", JSON.stringify(period_earnings));
+        sessionStorage.setItem("session_earnings", JSON.stringify(session_earnings));
     }
 
 
@@ -373,6 +378,8 @@
             sessionStorage.removeItem("quant2");
             sessionStorage.removeItem("offer_c");
             sessionStorage.removeItem("quant_c");
+            sessionStorage.removeItem("period_earnings");
+            sessionStorage.removeItem("session_earnings");
         }
     }
 
@@ -409,6 +416,11 @@
         } else if (!is_buyer && upd_bids !== [] && my_quant2.value !== ""){
             $("#btn-mkt-order").attr('disabled', false);
         }
+    }
+
+    function update_earnings(period_earnings,session_earnings){
+        document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(period_earnings).toFixed(2)
+        document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
     }
 
     function reset_hist_nav_buttons(){
@@ -515,13 +527,21 @@
         if (sessionStorage.getItem("quant2") !== null){
             my_quant2.value = JSON.parse(sessionStorage.getItem("quant2"));
         }
+
+        if (sessionStorage.getItem("period_earnings") !== null){
+            document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(JSON.parse(sessionStorage.getItem("period_earnings"))).toFixed(2);
+        }
+
+        if (sessionStorage.getItem("session_earnings") !== null){
+            document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(JSON.parse(sessionStorage.getItem("session_earnings"))).toFixed(2);
+        }
     }
 
 
     function populate_info_table(){
         document.getElementById('period').innerHTML = "<b>" + "Period " + "</b>" + this_round + "<b>" + " of " + "</b>" + total_rounds
-        document.getElementById('role').innerHTML = "<b>" + "Your role: " + "</b>" + ((is_buyer) ? ("Buyer") : ("Seller"))
-        document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>"
+        document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(0).toFixed(2)
+        document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
     }
 
 
@@ -621,8 +641,8 @@
             txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][5] == 0) ? ('') : (Number(upd_ind[n-1][i][5]).toFixed(2))) + "</exp>" + "</td>";
             txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:16%;'>" + ((upd_ind[n-1][i][1] == 0) ? ('') : (upd_ind[n-1][i][1])) + "</td>";
             txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:16%;'>" + ((upd_ind[n-1][i][2] == 0) ? ('') : (upd_ind[n-1][i][2])) + "</td>";
-            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][6] == 0) ? ('') : (Number(upd_ind[n-1][i][6]).toFixed(2))) + "</exp>" + "</td>";
-            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][7] == 0) ? ('') : (Number(upd_ind[n-1][i][7]).toFixed(2))) + "</exp>" + "</td>";
+            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][6] == 0 && upd_ind[n-1][i][5]== 0) ? ('') : (Number(upd_ind[n-1][i][6]).toFixed(2))) + "</exp>" + "</td>";
+            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][7] == 0 && upd_ind[n-1][i][5]== 0) ? ('') : (Number(upd_ind[n-1][i][7]).toFixed(2))) + "</exp>" + "</td>";
             txt_row += "</tr>";
         }
         $('#sum_table tbody').append(txt_row);
@@ -754,7 +774,7 @@
     function liveRecv(data) {
         console.log(data);
 
-        let {bids, asks, highcharts_series, current_offer, current_quant, inducement, news, event, payoff} = data;
+        let {bids, asks, highcharts_series, current_offer, current_quant, inducement, news, event, payoff, session_payoff} = data;
 
         $("#btn-mkt-order").attr('disabled', true);
 
@@ -770,6 +790,10 @@
 
         populate_bid_ask_table(bids, asks);
         populate_best_bid_ask_table(bids, asks);
+
+        period_earnings = payoff;
+        session_earnings = session_payoff;
+        update_earnings(period_earnings,session_earnings);
 
         update_messages(event, news);
 
