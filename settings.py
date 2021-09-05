@@ -5,11 +5,12 @@ SESSION_CONFIGS = [
         name='double_auction',
         display_name="Double Auction",
         app_sequence=['double_auction'],
-        num_units=3,
         num_rounds=3,
         num_demo_participants=4,
         timeout_seconds=600,
         wait_timeout_seconds=30,
+        multiple_unit_trading=False,
+
     ),
     dict(
         name='dollar_auction',

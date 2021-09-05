@@ -6,8 +6,8 @@ import math
 import copy
 import ast
 import json
-
 import settings
+
 
 
 
@@ -24,6 +24,9 @@ class Constants(BaseConstants):
 
 class Subsession(BaseSubsession):
     pass
+
+
+
 
 def creating_session(subsession: Subsession):
     if subsession.round_number == 1: # Assigning values to session-level variables, i.e., variables which take on values once which are assigned at the beginning of the experiment
@@ -80,6 +83,7 @@ def creating_session(subsession: Subsession):
     Group.total_rounds = subsession.session.total_rounds
     Group.timeout_seconds = subsession.session.timeout_seconds
     Group.wait_timeout_seconds = int(subsession.session.config['wait_timeout_seconds'])
+    Group.multiple_unit_trading = subsession.session.config['multiple_unit_trading']
 
     # The following block of code ensures that at the beginning of each round/sub-session, the session-wide participant variables are copied for each player
     for player in subsession.get_players():
@@ -99,6 +103,8 @@ class Group(BaseGroup):
     total_rounds = models.IntegerField()
     timeout_seconds = models.IntegerField()
     wait_timeout_seconds = models.IntegerField()
+    multiple_unit_trading = models.BooleanField()
+
 
 
 
@@ -122,6 +128,9 @@ class Transaction(ExtraModel):
     price = models.FloatField() # Records the price at which a trade takes place
     seconds = models.IntegerField(doc="Timestamp (seconds since beginning of trading)") # Will be used later to plot transactions
 
+
+
+
 def find_match_new(buyers, sellers, offer_type, bids_new, asks_new): # This method is used to determine the buyer and the seller for each trade
     if offer_type == 'bid': # 'bid' here is a place-holder for limit/market order from a buyer
         for buyer in buyers:
@@ -133,6 +142,9 @@ def find_match_new(buyers, sellers, offer_type, bids_new, asks_new): # This meth
             for buyer in buyers:
                 if buyer.current_offer == max(bids_new):
                     return [buyer, seller, buyer.order_type, seller.order_type, offer_type]
+
+
+
 
 def live_method(player: Player, data): # Whenever a buyer or a seller submits a limit or a market order, this method is called
     group = player.group
@@ -242,20 +254,20 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                             buyer_inducement[buyer.round_number - 1][i][5] = float(price) # The price at which trade took place
                             buyer_inducement[buyer.round_number - 1][i][6] = buyer_inducement[buyer.round_number - 1][i][0] - float(price) # Unit profit is simply induced value at the step minus the price paid
                             buyer_inducement[buyer.round_number - 1][i][7] = buyer_inducement[buyer.round_number - 1][i][7] + buyer_inducement[buyer.round_number - 1][i][6] # Total profit is simply the existing total profit at this step (if there have been any prior trades) plus the unit profit as an additional unit was bought at this step (If there weren't any prior trades at this step, then it's just the unit profit)
-                            buyer.payoff += buyer_inducement[buyer.round_number - 1][i][7]
-                            buyer.session_payoff += buyer_inducement[buyer.round_number - 1][i][7]
+                            buyer.payoff += buyer_inducement[buyer.round_number - 1][i][7] # Existing buyer payoff for the current round is augmented by the profit obtained from buying the current unit
+                            buyer.session_payoff += buyer_inducement[buyer.round_number - 1][i][7] # The aggregate payoff from trade in all previous as well as the current round is being augmented here
                             break
-                        else:
-                            buyer_inducement[buyer.round_number - 1].append([buyer_inducement[buyer.round_number - 1][i][0],
-                                                                             buyer_inducement[buyer.round_number - 1][i][3],
-                                                                             1,
-                                                                             buyer_inducement[buyer.round_number - 1][i][3] - 1,
-                                                                             buyer_order_type,
-                                                                             float(price),
-                                                                             buyer_inducement[buyer.round_number - 1][i][0] - float(price),
-                                                                             buyer_inducement[buyer.round_number - 1][i][0] - float(price)
+                        else: # If unit(s) have been previously bought at the ith step of induced values at a different price, then we need to bifurcate the data for the ith step of induced values as due to different prices for different units, profits will be different
+                            buyer_inducement[buyer.round_number - 1].append([buyer_inducement[buyer.round_number - 1][i][0], # The induced value in the additional row is the same as the induced value at the ith step
+                                                                             buyer_inducement[buyer.round_number - 1][i][3], # Quantity endowed in this case will be the quantity which was available when this bifurcation took place
+                                                                             1, # Quantity bought is 1 as this new row has just been created after this trade
+                                                                             buyer_inducement[buyer.round_number - 1][i][3] - 1, # Quantity available is simply the quantity endowed minus 1
+                                                                             buyer_order_type, # Whether the buyer placed a limit or a market order which lead to the sale of this unit
+                                                                             float(price), # The price at which trade took place
+                                                                             buyer_inducement[buyer.round_number - 1][i][0] - float(price), # Unit profit
+                                                                             buyer_inducement[buyer.round_number - 1][i][0] - float(price) # Total profit is the same as unit profit as this bifurcation has happened when 1 additional unit was bought
                                                                              ])
-                            buyer_inducement[buyer.round_number - 1][i][1] = buyer_inducement[buyer.round_number - 1][i][2]
+                            buyer_inducement[buyer.round_number - 1][i][1] = buyer_inducement[buyer.round_number - 1][i][2] # After bifurcation,
                             buyer_inducement[buyer.round_number - 1][i][3] = 0
                             buyer.payoff += buyer_inducement[buyer.round_number - 1][i][0] - float(price)
                             buyer.session_payoff += buyer_inducement[buyer.round_number - 1][i][0] - float(price)
@@ -381,11 +393,17 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
             for p in players
         }
 
+
+
+
 # PAGES
 class WaitToStart(WaitPage):
     @staticmethod
     def after_all_players_arrive(group: Group):
         group.start_timestamp = int(time.time())
+
+
+
 
 class Trading(Page):
     live_method = live_method
@@ -407,6 +425,7 @@ class Trading(Page):
             id_in_group=player.id_in_group, is_buyer=player.is_buyer, id_by_role=player.id_by_role,
             type=player.type, cur_round=player.round_number, total_rounds=Group.total_rounds,
             inducement=ast.literal_eval(player.inducement), session_payoff=player.session_payoff,
+            multiple_unit_trading=Group.multiple_unit_trading
         )
 
     @staticmethod
@@ -414,6 +433,8 @@ class Trading(Page):
         #group = player.group
         return Group.timeout_seconds
         #return Group.timeout_seconds + group.start_timestamp - time.time()
+
+
 
 
 class MyWaitPage(Page):
@@ -433,10 +454,13 @@ class MyWaitPage(Page):
 
 
 
+
 class Results(Page):
     @staticmethod
     def is_displayed(player):
         return player.round_number == Group.total_rounds
+
+
 
 
 page_sequence = [WaitToStart, Trading, MyWaitPage, Results]

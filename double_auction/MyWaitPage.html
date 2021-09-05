@@ -1,11 +1,8 @@
 {{ block title }}
-
-Transition Page
-
+    Break
 {{ endblock }}
 
 {{ block content }}
-
     <!-- Linking jQuery -->
     <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
@@ -15,6 +12,7 @@ Transition Page
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
     <!-- Bootstrap Font Icon CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+
 
 
     <div class="container">
@@ -43,8 +41,10 @@ Transition Page
         </div>
     </div>
 
-    <script>
 
+
+
+    <script>
         let timeout=js_vars.wait_timeout;
         let is_buyer = js_vars.is_buyer;
         let this_round = js_vars.cur_round;
@@ -73,10 +73,9 @@ Transition Page
             }
             document.getElementById('timeout_timer').innerHTML = min + ":" + sec
         }
-
-
-
     </script>
+
+
 
     <style>
         .otree-timer {
