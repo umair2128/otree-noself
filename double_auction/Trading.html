@@ -2,822 +2,883 @@
     Trading Phase
 {{ endblock }}
 
+
+
+
 {{ block content }}
+    <!-- Linking jQuery -->
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
-<!-- Linking jQuery -->
-<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
-<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+    <!-- Bootstrap Font Icon CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
 
-<!-- Bootstrap CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
-<!-- Bootstrap Font Icon CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
-
-<div class="container">
-    <div class="row">
-        <div class="col-6" style="border: 1px solid grey;">
-            <p>
-                <span id="basic_info"></span>
-            </p>
-        </div>
-        <div class="col-6" style="border: 1px solid grey;">
-            <table id="info_table" class="table table-sm table-borderless">
-                <tbody>
-                <tr>
-                    <td style="vertical-align:middle;text-align:left;"><span id="period"></span></td>
-                    <td style="vertical-align:middle;text-align:right;"><b>Time remaining: </b><span class='otree-timer__time-left'></span></td>
-                </tr>
-                <tr>
-                    <td style="vertical-align:middle;text-align:left;"><span id="period_earnings"></span></td>
-                    <td style="vertical-align:middle;text-align:right;"><span id="session_earnings"></span></td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<div class="container">
-    <div class="row">
-        <div class="col-2" style="border: 1px solid grey;"><!-- Queues column -->
-            <p><b>Queues</b></p>
-            <div class="row">
-                <table id="bid_ask_table_head" class="table table-sm table-borderless" style="table-layout:fixed;height:5px;"><thead></thead></table>
-            </div>
-            <div class="row" style="height:120px; overflow-y:scroll;">
-                <div class="col-1" style="vertical-align:middle;text-align:center;justify-content:center;align-items:center;">
-                    <p>A<br>S<br>K<br>S</p>
-                </div>
-                <div class="col-2">
-                    <table id="ask_table" class="table table-sm table-borderless" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><tbody></tbody></table>
-                </div>
-            </div>
-            <br>
-            <div class="row" style="height:120px; overflow-y:scroll;">
-                <div class="col-1" style="vertical-align:middle;text-align:center;justify-content:center;align-items:center;">
-                    <p>B<br>I<br>D<br>S</p>
-                </div>
-                <div class="col-2">
-                    <table id="bid_table" class="table table-sm table-borderless" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><tbody></tbody></table>
-                </div>
-            </div>
-        </div>
-        <div class="col-5" style="border: 1px solid grey;"><!-- Bid/Ask spread and Messages column -->
-            <div class="row" style="border: 1px solid grey;height:138px;"><!-- Bid/Ask spread row -->
-                <p><b>Bid-Ask Spread</b></p>
-                <div class="col-3 text-nowrap">
-                    <table id="best_bid_ask_table" class="table table-sm table-borderless" style="height:6px;width:100%;"><thead></thead><tbody></tbody></table>
-                </div>
-            </div>
-            <div class="row" style="border: 1px solid grey;"><!-- Messages row -->
-                <div class="col-12">
-                    <div class="row">
-                       <b>Messages</b>
-                    </div>
-                    <div class="row" style="height:180px;overflow-y:scroll;">
-                        <span id="event_messages"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-5" style="border: 1px solid grey;"><!-- Period info, Period summary, and Total period earnings column -->
-            <div class="row" style="vertical-align:middle;align-items:left;">
-                <div class="col-1" style="border: none;">
-                    <button class="btn-sm btn-primary" type="button" id="btn-first"><i class="bi-chevron-double-left"></i></button>
-                </div>
-                <div class="col-1" style="border: none;">
-                    <button class="btn-sm btn-primary" type="button" id="btn-prev"><i class="bi-chevron-left"></i></button>
-                </div>
-                <div class="col-7" style="border: none;text-align:center;">
-                    <span id="hist_text"></span>
-                </div>
-                <div class="col-1" style="border: none;">
-                    <button class="btn-sm btn-primary" type="button" id="btn-next"><i class="bi-chevron-right"></i></button>
-                </div>
-                <div class="col-1" style="border: none;">
-                    <button class="btn-sm btn-primary" type="button" id="btn-last"><i class="bi-chevron-double-right"></i></button>
-                </div>
-
-            </div>
-            <div class="row" style="height:90%; overflow-y:scroll;"><!-- Period summary row -->
-                <table id="sum_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="container" style="border: 1px solid grey;">
-    <div class="row">
-        <b><span id="actions_title"></span></b>
-    </div>
-    <div class="row">
-        <div class="col-8" style="border: 1px solid grey;border-top:none;border-left:none;">
-            <div class="row">
+    <div class="container">
+        <div class="row">
+            <div class="col-6" style="border: 1px solid grey;">
                 <p>
-                    <b><span id="actions_subtitle"></span></b>
+                    <span id="basic_info"></span> <!-- This market is trading widgets text -->
                 </p>
             </div>
-            <div class="row">
-                <div class="col-6" style="border-right:1px solid grey;">
-                    <div class="row">
-                        <span id="error_1" style="color:red"></span><br><br>
-                    </div>
-                    Price: <input type="number" id="my_offer"><br><br>
-                    Quantity: <input type="number" id="my_quant1" min="1" max="2"><br><br>
-                   <button class="btn-sm btn-primary" type="button" id="btn-lim-order"></button>
+            <div class="col-6" style="border: 1px solid grey;"> <!-- Period, time remaining, and earning details -->
+                <table id="info_table" class="table table-sm table-borderless">
+                    <tbody>
+                    <tr>
+                        <td style="vertical-align:middle;text-align:left;"><span id="period"></span></td>
+                        <td style="vertical-align:middle;text-align:right;"><b>Time remaining: </b><span class='otree-timer__time-left'></span></td>
+                    </tr>
+                    <tr>
+                        <td style="vertical-align:middle;text-align:left;"><span id="period_earnings"></span></td>
+                        <td style="vertical-align:middle;text-align:right;"><span id="session_earnings"></span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-2" style="border: 1px solid grey;"><!-- Queues column -->
+                <p><b>Queues</b></p>
+                <div class="row">
+                    <table id="bid_ask_table_head" class="table table-sm table-borderless" style="table-layout:fixed;height:5px;"><thead></thead></table>
                 </div>
-                <div class="col-6">
-                    <div class="row" style="height:100%;"><!-- Period summary row -->
-                        <div class="container" style="width:50%;overflow-y:scroll;">
-                            <table id="offer_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
+                <div class="row" style="height:120px; overflow-y:scroll;">
+                    <div class="col-1" style="vertical-align:middle;text-align:center;justify-content:center;align-items:center;">
+                        <p>A<br>S<br>K<br>S</p>
+                    </div>
+                    <div class="col-2">
+                        <table id="ask_table" class="table table-sm table-borderless" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><tbody></tbody></table>
+                    </div>
+                </div>
+                <br>
+                <div class="row" style="height:120px; overflow-y:scroll;">
+                    <div class="col-1" style="vertical-align:middle;text-align:center;justify-content:center;align-items:center;">
+                        <p>B<br>I<br>D<br>S</p>
+                    </div>
+                    <div class="col-2">
+                        <table id="bid_table" class="table table-sm table-borderless" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><tbody></tbody></table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-5" style="border: 1px solid grey;"><!-- Bid/Ask spread and Messages column -->
+                <div class="row" style="border: 1px solid grey;height:138px;"><!-- Bid/Ask spread row -->
+                    <p><b>Bid-Ask Spread</b></p>
+                    <div class="col-3 text-nowrap">
+                        <table id="best_bid_ask_table" class="table table-sm table-borderless" style="height:6px;width:100%;"><thead></thead><tbody></tbody></table>
+                    </div>
+                </div>
+                <div class="row" style="border: 1px solid grey;"><!-- Messages row -->
+                    <div class="col-12">
+                        <div class="row">
+                           <b>Messages</b>
+                        </div>
+                        <div class="row" style="height:180px;overflow-y:scroll;">
+                            <span id="event_messages"></span>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="col-4" style="border: 1px solid grey;border-top:none;border-right:none;">
-            <p>
-                <b><span id="market_action"></span></b>
-            </p>
-            <div class="row">
-                <span id="error_2" style="color:red"></span><br><br>
-            </div>
-            Price: <input type="text" value="Market" disabled="true"><br><br>
-            Quantity: <input type="number" id="my_quant2" min="1" max="2"><br><br>
-            <button class="btn-sm btn-primary" type="button" id="btn-mkt-order">Market Order</button>
+            <div class="col-5" style="border: 1px solid grey;"><!-- Period nav buttons and period summary column -->
+                <div class="row" style="vertical-align:middle;align-items:left;">
+                    <div class="col-1" style="border: none;">
+                        <button class="btn-sm btn-primary" type="button" id="btn-first"><i class="bi-chevron-double-left"></i></button>
+                    </div>
+                    <div class="col-1" style="border: none;">
+                        <button class="btn-sm btn-primary" type="button" id="btn-prev"><i class="bi-chevron-left"></i></button>
+                    </div>
+                    <div class="col-7" style="border: none;text-align:center;">
+                        <span id="hist_text"></span>
+                    </div>
+                    <div class="col-1" style="border: none;">
+                        <button class="btn-sm btn-primary" type="button" id="btn-next"><i class="bi-chevron-right"></i></button>
+                    </div>
+                    <div class="col-1" style="border: none;">
+                        <button class="btn-sm btn-primary" type="button" id="btn-last"><i class="bi-chevron-double-right"></i></button>
+                    </div>
 
+                </div>
+                <div class="row" style="height:90%; overflow-y:scroll;"><!-- Period summary row -->
+                    <table id="sum_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<p><button id="new_submit" class="otree-btn-next btn btn-primary next-button otree-next-button">Next Round</button></p>
+    <div class="container" style="border: 1px solid grey;"> <!-- Buyer/Seller actions row -->
+        <div class="row">
+            <b><span id="actions_title"></span></b>
+        </div>
+        <div class="row">
+            <div class="col-8" style="border: 1px solid grey;border-top:none;border-left:none;">
+                <div class="row">
+                    <p>
+                        <b><span id="actions_subtitle"></span></b>
+                    </p>
+                </div>
+                <div class="row">
+                    <div class="col-6" style="border-right:1px solid grey;"> <!-- Bids/Asks input column -->
+                        <div class="row">
+                            <span id="error_1" style="color:red"></span><br><br>
+                        </div>
+                        Price: <input type="number" id="my_offer"><br><br>
+                        Quantity: <input type="number" id="my_quant1" min="1"><br><br>
+                       <button class="btn-sm btn-primary" type="button" id="btn-lim-order"></button>
+                    </div>
+                    <div class="col-6"> <!-- Offer table column -->
+                        <div class="row" style="height:100%;">
+                            <div class="container" style="width:50%;overflow-y:scroll;">
+                                <table id="offer_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4" style="border: 1px solid grey;border-top:none;border-right:none;"> <!-- Market Buy/Sell column -->
+                <p>
+                    <b><span id="market_action"></span></b>
+                </p>
+                <div class="row">
+                    <span id="error_2" style="color:red"></span><br><br>
+                </div>
+                Price: <input type="text" value="Market" disabled="true"><br><br>
+                Quantity: <input type="number" id="my_quant2" min="1"><br><br>
+                <button class="btn-sm btn-primary" type="button" id="btn-mkt-order">Market Order</button>
+
+            </div>
+        </div>
+    </div>
 
 
-<style>
-    .otree-timer {
-        display: none;
-    }
 
-    exp {
-      display: inline-block;
-      position: relative;
-      width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      vertical-align: middle;
-      text-align: center;
-    }
 
-    exp:hover {
-        z-index: 1;
-        width: auto;
-        font-family: monospace;
-        background-color: #FFFFCC;
-    }
-
-    .btn-sm.btn-primary[disabled] {
-        background-color: #8ac8ff;
-        border-color: #66b8ff;
-    }
-
-    .fading {
-        -webkit-animation-duration: 500ms;
-        -webkit-animation-name: fading;
-        animation-duration: 1s;
-        animation-name: fading;
-    }
-    @-webkit-keyframes fading {
-        from {
-            color: white;
+    <style>
+        .otree-timer {
+            display: none;
         }
-        to {
-            color: red;
+
+        exp {
+          display: inline-block;
+          position: relative;
+          width: 100%;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          vertical-align: middle;
+          text-align: center;
         }
-    }
-    @keyframes fading {
-        from {
-            color: white;
+
+        exp:hover {
+            z-index: 1;
+            width: auto;
+            font-family: monospace;
+            background-color: #FFFFCC;
         }
-        to {
-            color: red;
+
+        .btn-sm.btn-primary[disabled] {
+            background-color: #8ac8ff;
+            border-color: #66b8ff;
         }
-    }
 
-</style>
-
-
-<script>
-
-    let my_id = js_vars.id_in_group;
-    let is_buyer = js_vars.is_buyer;
-    let this_round = js_vars.cur_round;
-    let total_rounds = js_vars.total_rounds;
-    let upd_ind = js_vars.inducement;
-
-    let upd_bids = [];
-    let upd_asks = [];
-
-    let period_earnings = 0;
-    let session_earnings = js_vars.session_payoff;
-
-    let my_offer = document.getElementById('my_offer');
-    let my_quant1 = document.getElementById('my_quant1');
-    let my_quant2 = document.getElementById('my_quant2');
-
-    let error_1 = document.getElementById('error_1');
-    let error_2 = document.getElementById('error_2');
-
-    event_messages = document.getElementById('event_messages');
-    hist_text = document.getElementById('hist_text');
-
-    let offer_c = 0;
-    let quant_c = 0;
-
-    $("#my_quant1").on('keydown keyup change', function(e){
-        var max_quant1 = update_quant1(upd_ind);
-        if ($(this).val() > max_quant1 && e.keyCode !== 46 && e.keyCode !== 8){
-           e.preventDefault();
-           $(this).val("");
-
-        error_1.innerHTML = "You cannot " + ((is_buyer) ? ("bid for ") : ("ask for ")) + ((max_quant1==0) ? ("any units.") : ("more than " + max_quant1 + " units.")) ;
-        $('#error_1').addClass('fading');
-
-        setTimeout(function() {
-            $('#error_1').removeClass('fading');
-        }, 1000);
-
-        setTimeout(function() {
-            error_1.innerHTML = "";
-        }, 3500);
+        .fading {
+            -webkit-animation-duration: 500ms;
+            -webkit-animation-name: fading;
+            animation-duration: 1s;
+            animation-name: fading;
         }
-    });
 
-    $("#my_quant2").on('keydown keyup change', function(e){
-        var max_quant2 = update_quant2(upd_ind);
-        if ($(this).val() > max_quant2 && e.keyCode !== 46 && e.keyCode !== 8){
-           e.preventDefault();
-           $(this).val("");
+        @-webkit-keyframes fading {
+            from {
+                color: white;
+            }
+            to {
+                color: red;
+            }
+        }
 
-            error_2.innerHTML = "You cannot " + ((is_buyer) ? ("buy ") : ("sell ")) + ((max_quant2==0) ? ("any units at this moment.") : ("more than " + max_quant2 + " units at this moment.")) ;
-            $('#error_2').addClass('fading');
+        @keyframes fading {
+            from {
+                color: white;
+            }
+            to {
+                color: red;
+            }
+        }
+    </style>
+
+
+    <script>
+        let my_id = js_vars.id_in_group;
+        let is_buyer = js_vars.is_buyer;
+        let this_round = js_vars.cur_round;
+        let total_rounds = js_vars.total_rounds;
+        let upd_ind = js_vars.inducement;
+
+        let upd_bids = [];
+        let upd_asks = [];
+
+        let period_earnings = 0;
+        let session_earnings = js_vars.session_payoff;
+        let multi_unit_trading = js_vars.multiple_unit_trading;
+        let rel_price_imp = js_vars.relative_price_imp;
+
+        let my_offer = document.getElementById('my_offer');
+        let my_quant1 = document.getElementById('my_quant1');
+        let my_quant2 = document.getElementById('my_quant2');
+
+        let error_1 = document.getElementById('error_1');
+        let error_2 = document.getElementById('error_2');
+
+        event_messages = document.getElementById('event_messages');
+        hist_text = document.getElementById('hist_text');
+
+        let offer_c = 0;
+        let quant_c = 0;
+
+
+        $("#my_quant1").on('keydown keyup change', function(e){
+            var max_quant1 = update_quant1(upd_ind);
+            if ($(this).val() > max_quant1 && e.keyCode !== 46 && e.keyCode !== 8){
+               e.preventDefault();
+               $(this).val("");
+
+            error_1.innerHTML = "You cannot " + ((is_buyer) ? ("bid for ") : ("ask for ")) + ((max_quant1==0) ? ("any units.") : ("more than " + max_quant1 + " units.")) ;
+            $('#error_1').addClass('fading');
 
             setTimeout(function() {
-                $('#error_2').removeClass('fading');
+                $('#error_1').removeClass('fading');
             }, 1000);
 
             setTimeout(function() {
-                error_2.innerHTML = "";
+                error_1.innerHTML = "";
             }, 3500);
-        }
-    });
+            }
+        });
 
-    $("#btn-lim-order").on('click', function(e){
-        if(is_buyer){
-            if (my_offer.value < offer_c){
-                my_offer.value = "";
-                my_quant1.value = "";
-                $("#btn-lim-order").attr('disabled', true);
-                error_1.innerHTML = "Your bid price has to be greater than " + offer_c + "." ;
-                $('#error_1').addClass('fading');
+
+        $("#my_quant2").on('keydown keyup change', function(e){
+            var max_quant2 = update_quant2(upd_ind);
+            if ($(this).val() > max_quant2 && e.keyCode !== 46 && e.keyCode !== 8){
+               e.preventDefault();
+               $(this).val("");
+
+                error_2.innerHTML = "You cannot " + ((is_buyer) ? ("buy ") : ("sell ")) + ((max_quant2==0) ? ("any units at this moment.") : ("more than " + max_quant2 + " units at this moment.")) ;
+                $('#error_2').addClass('fading');
 
                 setTimeout(function() {
-                    $('#error_1').removeClass('fading');
+                    $('#error_2').removeClass('fading');
                 }, 1000);
 
                 setTimeout(function() {
-                    error_1.innerHTML = "";
+                    error_2.innerHTML = "";
                 }, 3500);
-            } else {
-                limitOrder();
-                update_offer_table(my_offer.value,my_quant1.value);
-                my_quant1.value = "";
-                my_offer.value = "";
-                var max_quant1 = update_quant1(upd_ind);
-                $("#btn-lim-order").attr('disabled', true);
             }
-        } else {
-            if (offer_c!=0 && my_offer.value > offer_c){
-                my_offer.value = "";
-                my_quant1.value = "";
-                $("#btn-lim-order").attr('disabled', true);
-                error_1.innerHTML = "Your ask price has to be less than " + offer_c + "." ;
-                $('#error_1').addClass('fading');
+        });
 
-                setTimeout(function() {
-                    $('#error_1').removeClass('fading');
-                }, 1000);
 
-                setTimeout(function() {
-                    error_1.innerHTML = "";
-                }, 3500);
+        $("#btn-lim-order").on('click', function(e){
+            if(is_buyer){
+                if (my_offer.value < offer_c){
+                    my_offer.value = "";
+                    my_quant1.value = "";
+                    $("#btn-lim-order").attr('disabled', true);
+                    error_1.innerHTML = "Your bid price has to be greater than " + offer_c + "." ;
+                    $('#error_1').addClass('fading');
+
+                    setTimeout(function() {
+                        $('#error_1').removeClass('fading');
+                    }, 1000);
+
+                    setTimeout(function() {
+                        error_1.innerHTML = "";
+                    }, 3500);
+                } else {
+                    limitOrder();
+                    update_offer_table(my_offer.value,my_quant1.value);
+                    my_quant1.value = "";
+                    my_offer.value = "";
+                    var max_quant1 = update_quant1(upd_ind);
+                    $("#btn-lim-order").attr('disabled', true);
+                }
             } else {
-                limitOrder();
-                update_offer_table(my_offer.value,my_quant1.value);
-                my_quant1.value = "";
-                my_offer.value = "";
-                var max_quant1 = update_quant1(upd_ind);
-                $("#btn-lim-order").attr('disabled', true);
+                if (offer_c!=0 && my_offer.value > offer_c){
+                    my_offer.value = "";
+                    my_quant1.value = "";
+                    $("#btn-lim-order").attr('disabled', true);
+                    error_1.innerHTML = "Your ask price has to be less than " + offer_c + "." ;
+                    $('#error_1').addClass('fading');
+
+                    setTimeout(function() {
+                        $('#error_1').removeClass('fading');
+                    }, 1000);
+
+                    setTimeout(function() {
+                        error_1.innerHTML = "";
+                    }, 3500);
+                } else {
+                    limitOrder();
+                    update_offer_table(my_offer.value,my_quant1.value);
+                    my_quant1.value = "";
+                    my_offer.value = "";
+                    var max_quant1 = update_quant1(upd_ind);
+                    $("#btn-lim-order").attr('disabled', true);
+                }
+            }
+            multi_unit_trading_check();
+        });
+
+
+        $("#btn-mkt-order").on('click', function(e){
+            var max_quant2 = update_quant2(upd_ind);
+            $("#btn-mkt-order").attr('disabled', true);
+            marketOrder();
+            my_quant2.value = "";
+            multi_unit_trading_check();
+        });
+
+
+        document.addEventListener("keyup", function(event) {
+            setTimeout(function() {
+                if (my_quant1.value > 0 && my_offer.value > 0){
+                    $("#btn-lim-order").attr('disabled', false);
+                } else {
+                    $("#btn-lim-order").attr('disabled', true);
+                }
+                if (my_quant2.value > 0) {
+                    $("#btn-mkt-order").attr('disabled', false);
+                } else {
+                    $("#btn-mkt-order").attr('disabled', true);
+                }
+            }, 0);
+        });
+
+
+        window.onbeforeunload = function() {
+            sessionStorage.setItem("bids", JSON.stringify(upd_bids));
+            sessionStorage.setItem("asks", JSON.stringify(upd_asks));
+            sessionStorage.setItem("messages", JSON.stringify(event_messages.innerHTML));
+            sessionStorage.setItem("inducements", JSON.stringify(upd_ind));
+            sessionStorage.setItem("offer", JSON.stringify(my_offer.value));
+            sessionStorage.setItem("quant1", JSON.stringify(my_quant1.value));
+            sessionStorage.setItem("quant2", JSON.stringify(my_quant2.value));
+            sessionStorage.setItem("offer_c", JSON.stringify(offer_c));
+            sessionStorage.setItem("quant_c", JSON.stringify(quant_c));
+            sessionStorage.setItem("cur_round", JSON.stringify(this_round));
+            sessionStorage.setItem("period_earnings", JSON.stringify(period_earnings));
+            sessionStorage.setItem("session_earnings", JSON.stringify(session_earnings));
+        }
+
+
+        window.onload = function () {
+            check_for_refresh();
+            hist_round = this_round
+            set_things_up();
+        }
+
+
+        function check_for_refresh(){
+            if(this_round != JSON.parse(sessionStorage.getItem("cur_round"))){
+                sessionStorage.removeItem("bids");
+                sessionStorage.removeItem("asks");
+                sessionStorage.removeItem("messages");
+                sessionStorage.removeItem("offer");
+                sessionStorage.removeItem("quant1");
+                sessionStorage.removeItem("quant2");
+                sessionStorage.removeItem("offer_c");
+                sessionStorage.removeItem("quant_c");
+                sessionStorage.removeItem("period_earnings");
+                sessionStorage.removeItem("session_earnings");
             }
         }
-    });
 
-    $("#btn-mkt-order").on('click', function(e){
-        var max_quant2 = update_quant2(upd_ind);
-        $("#btn-mkt-order").attr('disabled', true);
-        marketOrder();
-        my_quant2.value = "";
-    });
 
-    document.addEventListener("keyup", function(event) {
-        setTimeout(function() {
-            if (my_quant1.value > 0 && my_offer.value > 0){
+        function set_things_up(){
+            reset_hist_nav_buttons();
+            show_info();
+            create_offer_table();
+            update_quant1(upd_ind);
+            update_quant2(upd_ind);
+
+            $("#btn-lim-order").attr('disabled', true);
+            $("#btn-mkt-order").attr('disabled', true);
+
+            recall_dom_elements();
+
+            if (upd_bids !== [] || upd_asks !== []){
+                populate_bid_ask_table(upd_bids, upd_asks);
+                populate_best_bid_ask_table(upd_bids, upd_asks);
+            }
+
+            populate_sum_table(this_round,upd_ind);
+
+            if (sessionStorage.getItem("offer_c") !== null && sessionStorage.getItem("quant_c") !== null){
+                update_offer_table(JSON.parse(sessionStorage.getItem("offer_c")),JSON.parse(sessionStorage.getItem("quant_c")));
+            }
+
+            if (my_quant1.value !== "" && my_offer.value !== ""){
                 $("#btn-lim-order").attr('disabled', false);
-            } else {
-                $("#btn-lim-order").attr('disabled', true);
             }
-            if (my_quant2.value >0) {
+
+            if (is_buyer && upd_asks !==[] && my_quant2.value !== ""){
                 $("#btn-mkt-order").attr('disabled', false);
-            } else {
-                $("#btn-mkt-order").attr('disabled', true);
+            } else if (!is_buyer && upd_bids !== [] && my_quant2.value !== ""){
+                $("#btn-mkt-order").attr('disabled', false);
             }
-        }, 0);
-    });
 
-
-    window.onbeforeunload = function() {
-        sessionStorage.setItem("bids", JSON.stringify(upd_bids));
-        sessionStorage.setItem("asks", JSON.stringify(upd_asks));
-        sessionStorage.setItem("messages", JSON.stringify(event_messages.innerHTML));
-        sessionStorage.setItem("inducements", JSON.stringify(upd_ind));
-        sessionStorage.setItem("offer", JSON.stringify(my_offer.value));
-        sessionStorage.setItem("quant1", JSON.stringify(my_quant1.value));
-        sessionStorage.setItem("quant2", JSON.stringify(my_quant2.value));
-        sessionStorage.setItem("offer_c", JSON.stringify(offer_c));
-        sessionStorage.setItem("quant_c", JSON.stringify(quant_c));
-        sessionStorage.setItem("cur_round", JSON.stringify(this_round));
-        sessionStorage.setItem("period_earnings", JSON.stringify(period_earnings));
-        sessionStorage.setItem("session_earnings", JSON.stringify(session_earnings));
-    }
-
-
-    window.onload = function () {
-        check_for_refresh();
-        hist_round = this_round
-        set_things_up();
-    }
-
-    function check_for_refresh(){
-        if(this_round != JSON.parse(sessionStorage.getItem("cur_round"))){
-            sessionStorage.removeItem("bids");
-            sessionStorage.removeItem("asks");
-            sessionStorage.removeItem("messages");
-            sessionStorage.removeItem("offer");
-            sessionStorage.removeItem("quant1");
-            sessionStorage.removeItem("quant2");
-            sessionStorage.removeItem("offer_c");
-            sessionStorage.removeItem("quant_c");
-            sessionStorage.removeItem("period_earnings");
-            sessionStorage.removeItem("session_earnings");
-        }
-    }
-
-    function set_things_up(){
-        reset_hist_nav_buttons();
-        show_info();
-        create_offer_table();
-        update_quant1(upd_ind);
-        update_quant2(upd_ind);
-
-        $("#btn-lim-order").attr('disabled', true);
-        $("#btn-mkt-order").attr('disabled', true);
-
-        recall_dom_elements();
-
-        if (upd_bids !== [] || upd_asks !== []){
-            populate_bid_ask_table(upd_bids, upd_asks);
-            populate_best_bid_ask_table(upd_bids, upd_asks);
+            multi_unit_trading_check();
         }
 
-        populate_sum_table(this_round,upd_ind);
-        console.log("INDUCEMENTS: ", upd_ind);
 
-        if (sessionStorage.getItem("offer_c") !== null && sessionStorage.getItem("quant_c") !== null){
-            update_offer_table(JSON.parse(sessionStorage.getItem("offer_c")),JSON.parse(sessionStorage.getItem("quant_c")));
+        function update_earnings(period_earnings,session_earnings){
+            document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(period_earnings).toFixed(2)
+            document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
         }
 
-        if (my_quant1.value !== "" && my_offer.value !== ""){
-            $("#btn-lim-order").attr('disabled', false);
+
+        function multi_unit_trading_check(){
+            if (multi_unit_trading == false){
+                my_quant1.value = Math.min(update_quant1(upd_ind),1);
+                my_quant1.disabled = true;
+                my_quant2.value = Math.min(update_quant2(upd_ind),1);
+                my_quant2.disabled = true;
+            }
         }
 
-        if (is_buyer && upd_asks !==[] && my_quant2.value !== ""){
-            $("#btn-mkt-order").attr('disabled', false);
-        } else if (!is_buyer && upd_bids !== [] && my_quant2.value !== ""){
-            $("#btn-mkt-order").attr('disabled', false);
+
+        function reset_hist_nav_buttons(){
+            hist_text.innerHTML = "Period " + hist_round + " Summary";
+
+            if (hist_round > 1){
+                $("#btn-first").attr('disabled', false);
+                $("#btn-prev").attr('disabled', false);
+            } else {
+                $("#btn-first").attr('disabled', true);
+                $("#btn-prev").attr('disabled', true);
+            }
+
+            if (hist_round < this_round){
+                $("#btn-next").attr('disabled', false);
+                $("#btn-last").attr('disabled', false);
+            } else {
+                $("#btn-next").attr('disabled', true);
+                $("#btn-last").attr('disabled', true);
+            }
         }
-    }
 
-    function update_earnings(period_earnings,session_earnings){
-        document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(period_earnings).toFixed(2)
-        document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
-    }
 
-    function reset_hist_nav_buttons(){
-        hist_text.innerHTML = "Period " + hist_round + " Summary";
-
-        if (hist_round > 1){
-            $("#btn-first").attr('disabled', false);
-            $("#btn-prev").attr('disabled', false);
-        } else {
+        $("#btn-first").on('click', function(e){
+            hist_round = 1;
+            hist_text.innerHTML = "Period " + hist_round + " Summary";
+            populate_sum_table(hist_round,upd_ind);
             $("#btn-first").attr('disabled', true);
             $("#btn-prev").attr('disabled', true);
-        }
-
-        if (hist_round < this_round){
             $("#btn-next").attr('disabled', false);
             $("#btn-last").attr('disabled', false);
-        } else {
+        });
+
+
+        $("#btn-prev").on('click', function(e){
+            $("#btn-next").attr('disabled', false);
+            $("#btn-last").attr('disabled', false);
+
+            hist_round = hist_round - 1;
+            hist_text.innerHTML = "Period " + hist_round + " Summary";
+            populate_sum_table(hist_round,upd_ind);
+
+            if (hist_round == 1){
+                $("#btn-first").attr('disabled', true);
+                $("#btn-prev").attr('disabled', true);
+            }
+        });
+
+
+        $("#btn-next").on('click', function(e){
+            $("#btn-prev").attr('disabled', false);
+            $("#btn-first").attr('disabled', false);
+
+            hist_round = hist_round + 1;
+            hist_text.innerHTML = "Period " + hist_round + " Summary";
+            populate_sum_table(hist_round,upd_ind);
+
+            if (hist_round == this_round){
+                $("#btn-next").attr('disabled', true);
+                $("#btn-last").attr('disabled', true);
+            }
+        });
+
+
+        $("#btn-last").on('click', function(e){
+            hist_round = this_round;
+            hist_text.innerHTML = "Period " + hist_round + " Summary";
+            populate_sum_table(hist_round,upd_ind);
+            $("#btn-first").attr('disabled', false);
+            $("#btn-prev").attr('disabled', false);
             $("#btn-next").attr('disabled', true);
             $("#btn-last").attr('disabled', true);
-        }
-    }
+        });
 
-    $("#btn-first").on('click', function(e){
-        hist_round = 1;
-        hist_text.innerHTML = "Period " + hist_round + " Summary";
-        populate_sum_table(hist_round,upd_ind);
-        $("#btn-first").attr('disabled', true);
-        $("#btn-prev").attr('disabled', true);
-        $("#btn-next").attr('disabled', false);
-        $("#btn-last").attr('disabled', false);
-    });
 
-    $("#btn-prev").on('click', function(e){
-        $("#btn-next").attr('disabled', false);
-        $("#btn-last").attr('disabled', false);
+        function show_info(){
+            document.getElementById('basic_info').innerHTML = "This market is trading widgets. You are assigned the role of a " +
+                ((is_buyer) ? ("buyer") : ("seller")) + "."
 
-        hist_round = hist_round - 1;
-        hist_text.innerHTML = "Period " + hist_round + " Summary";
-        populate_sum_table(hist_round,upd_ind);
-
-        if (hist_round == 1){
-            $("#btn-first").attr('disabled', true);
-            $("#btn-prev").attr('disabled', true);
-        }
-    });
-
-    $("#btn-next").on('click', function(e){
-        $("#btn-prev").attr('disabled', false);
-        $("#btn-first").attr('disabled', false);
-
-        hist_round = hist_round + 1;
-        hist_text.innerHTML = "Period " + hist_round + " Summary";
-        populate_sum_table(hist_round,upd_ind);
-
-        if (hist_round == this_round){
-            $("#btn-next").attr('disabled', true);
-            $("#btn-last").attr('disabled', true);
-        }
-    });
-
-    $("#btn-last").on('click', function(e){
-        hist_round = this_round;
-        hist_text.innerHTML = "Period " + hist_round + " Summary";
-        populate_sum_table(hist_round,upd_ind);
-        $("#btn-first").attr('disabled', false);
-        $("#btn-prev").attr('disabled', false);
-        $("#btn-next").attr('disabled', true);
-        $("#btn-last").attr('disabled', true);
-    });
-
-    function show_info(){
-        document.getElementById('basic_info').innerHTML = "This market is trading widgets. You are assigned the role of a " +
-            ((is_buyer) ? ("buyer") : ("seller")) + "."
-
-        populate_info_table();
-        populate_actions_div();
-    }
-
-    function recall_dom_elements(){
-        if (sessionStorage.getItem("bids") !== null){
-            upd_bids = JSON.parse(sessionStorage.getItem("bids"));
+            populate_info_table();
+            populate_actions_div();
         }
 
-        if (sessionStorage.getItem("asks") !== null){
-            upd_asks = JSON.parse(sessionStorage.getItem("asks"));
-        }
 
-        if (sessionStorage.getItem("messages") !== null){
-            event_messages.innerHTML = JSON.parse(sessionStorage.getItem("messages"));
-        }
-
-        if (sessionStorage.getItem("inducements") !== null){
-            upd_ind = JSON.parse(sessionStorage.getItem("inducements"));
-        }
-
-        if (sessionStorage.getItem("offer") !== null){
-            my_offer.value = JSON.parse(sessionStorage.getItem("offer"));
-        }
-
-        if (sessionStorage.getItem("quant1") !== null){
-            my_quant1.value = JSON.parse(sessionStorage.getItem("quant1"));
-        }
-
-        if (sessionStorage.getItem("quant2") !== null){
-            my_quant2.value = JSON.parse(sessionStorage.getItem("quant2"));
-        }
-
-        if (sessionStorage.getItem("period_earnings") !== null){
-            document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(JSON.parse(sessionStorage.getItem("period_earnings"))).toFixed(2);
-        }
-
-        if (sessionStorage.getItem("session_earnings") !== null){
-            document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(JSON.parse(sessionStorage.getItem("session_earnings"))).toFixed(2);
-        }
-    }
-
-
-    function populate_info_table(){
-        document.getElementById('period').innerHTML = "<b>" + "Period " + "</b>" + this_round + "<b>" + " of " + "</b>" + total_rounds
-        document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(0).toFixed(2)
-        document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
-    }
-
-
-    function populate_actions_div(){
-        document.getElementById('actions_title').innerHTML = ((is_buyer) ? ("Buyer") : ("Seller")) + " Actions"
-        document.getElementById('actions_subtitle').innerHTML = ((is_buyer) ? ("Bids") : ("Asks"))
-        document.getElementById('market_action').innerHTML = "Market " + ((is_buyer) ? ("Buy") : ("Sell"))
-
-        document.getElementById('btn-lim-order').innerHTML = ((is_buyer) ? ("Bid") : ("Ask"))
-        document.getElementById('btn-mkt-order').innerHTML = ((is_buyer) ? ("Buy") : ("Sell"))
-    }
-
-
-    function populate_bid_ask_table(upd_bids, upd_asks){
-        $("#bid_ask_table_head tr").remove(); // in case redrawing table
-        let txt_header = "";
-        txt_header += "<tr>";
-        txt_header += "<th style='margin:0;padding:0;width:10px;text-align:center;'></th>"
-        txt_header += "<th style='margin:0;padding:0;width:4px;text-align:center;'>Price</th>"
-        txt_header += "<th style='margin:0;padding:0;width:30px;text-align:center;'>Qty</th>"
-        txt_header += "</tr>"
-        $('#bid_ask_table_head thead').append(txt_header);
-
-        if (upd_asks.length !== 0) {
-            $("#ask_table tr").remove(); // in case redrawing table
-            let txt_row_ask = "";
-            for (var i = 0; i < upd_asks.length; i++){
-                txt_row_ask += "<tr>";
-                txt_row_ask += "<td style='margin:0;padding:0;width:2px;text-align:center;font-size:75%;'>" + "</td>";
-                txt_row_ask += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + "<exp>" + Number(upd_asks[i][0]).toFixed(2) + "</exp>" + "</td>";
-                txt_row_ask += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + upd_asks[i][1] + "</td>";
-                txt_row_ask += "</tr>";
+        function recall_dom_elements(){
+            if (sessionStorage.getItem("bids") !== null){
+                upd_bids = JSON.parse(sessionStorage.getItem("bids"));
             }
-            $('#ask_table tbody').append(txt_row_ask);
-        } else {
-            $("#ask_table tr").remove(); // in case redrawing table
-        }
 
-        if (upd_bids.length !== 0){
-            $("#bid_table tr").remove(); // in case redrawing table
-            let txt_row_bid = "";
-            for (var i = 0; i < upd_bids.length; i++){
-                txt_row_bid += "<tr>";
-                txt_row_bid += "<td style='margin:0;padding:0;width:2px;text-align:center;font-size:75%;'>" + "</td>";
-                txt_row_bid += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + "<exp>" + Number(upd_bids[i][0]).toFixed(2) + "</exp>" + "</td>";
-                txt_row_bid += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + upd_bids[i][1] + "</td>";
-                txt_row_bid += "</tr>";
+            if (sessionStorage.getItem("asks") !== null){
+                upd_asks = JSON.parse(sessionStorage.getItem("asks"));
             }
-            $('#bid_table tbody').append(txt_row_bid);
-        } else {
-            $("#bid_table tr").remove();
+
+            if (sessionStorage.getItem("messages") !== null){
+                event_messages.innerHTML = JSON.parse(sessionStorage.getItem("messages"));
+            }
+
+            if (sessionStorage.getItem("inducements") !== null){
+                upd_ind = JSON.parse(sessionStorage.getItem("inducements"));
+            }
+
+            if (sessionStorage.getItem("offer") !== null){
+                my_offer.value = JSON.parse(sessionStorage.getItem("offer"));
+            }
+
+            if (sessionStorage.getItem("quant1") !== null){
+                my_quant1.value = JSON.parse(sessionStorage.getItem("quant1"));
+            }
+
+            if (sessionStorage.getItem("quant2") !== null){
+                my_quant2.value = JSON.parse(sessionStorage.getItem("quant2"));
+            }
+
+            if (sessionStorage.getItem("period_earnings") !== null){
+                document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(JSON.parse(sessionStorage.getItem("period_earnings"))).toFixed(2);
+            }
+
+            if (sessionStorage.getItem("session_earnings") !== null){
+                document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(JSON.parse(sessionStorage.getItem("session_earnings"))).toFixed(2);
+            }
         }
-    }
 
 
-    function populate_best_bid_ask_table(upd_bids, upd_asks){
-        $("#best_bid_ask_table tr").remove(); // in case redrawing table
-        let txt_header = "";
-        txt_header += "<tr>";
-        txt_header += "<th style='width:50%;'></th>"
-        txt_header += "<th style='width:25%;'>Price</th>"
-        txt_header += "<th style='width:25%;'>Qty</th>"
-        txt_header += "</tr>"
-        $('#best_bid_ask_table thead').append(txt_header);
-
-        let txt_row = "";
-        txt_row += "<tr>";
-        txt_row += "<td>" + "<b>" + "Best Ask:" + "</b>" + "</td>";
-        txt_row += "<td>" + ((upd_asks.length == 0) ? ('') : (Number(upd_asks[upd_asks.length-1][0]).toFixed(2))) + "</td>";
-        txt_row += "<td>" + ((upd_asks.length == 0) ? ('') : (upd_asks[upd_asks.length-1][1])) + "</td>";
-        txt_row += "</tr>";
-        txt_row += "<tr>";
-        txt_row += "<td>" + "<b>" + "Best Bid:" + "</b>" + "</td>";
-        txt_row += "<td>" + ((upd_bids.length == 0) ? ('') : (Number(upd_bids[0][0]).toFixed(2))) + "</td>";
-        txt_row += "<td>" + ((upd_bids.length == 0) ? ('') : (upd_bids[0][1])) + "</td>";
-        txt_row += "</tr>";
-        $('#best_bid_ask_table tbody').append(txt_row);
-    }
-
-    function populate_sum_table(n, upd_ind){
-        $("#sum_table tr").remove(); // in case redrawing table
-        let txt_header = "";
-        txt_header += "<tr>";
-        txt_header += "<th style='text-align:center;font-size:75%;'>Value</th>"
-        txt_header += "<th style='text-align:center;font-size:75%;'>Price</th>"
-        txt_header += "<th style='text-align:center;font-size:75%;'>" + "#" + "<br>" + "Endowed" + "</th>"
-        txt_header += "<th style='text-align:center;font-size:75%;'>" +  ((is_buyer) ? ("#" + "<br>" + "Bought") : ("#" + "<br>" + "Sold"))  +"</th>"
-        txt_header += "<th style='text-align:center;font-size:75%;'>Unit Profit</th>"
-        txt_header += "<th style='text-align:center;font-size:75%;'>Total Profit</th>"
-        txt_header += "</tr>"
-        $('#sum_table thead').append(txt_header);
-
-        let txt_row = "";
-        for (var i = 0; i < upd_ind[n-1].length; i++){
-            txt_row += "<tr>";
-            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][0] == 0) ? ('') : (Number(upd_ind[n-1][i][0]).toFixed(2))) + "</exp>" + "</td>";
-            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][5] == 0) ? ('') : (Number(upd_ind[n-1][i][5]).toFixed(2))) + "</exp>" + "</td>";
-            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:16%;'>" + ((upd_ind[n-1][i][1] == 0) ? ('') : (upd_ind[n-1][i][1])) + "</td>";
-            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:16%;'>" + ((upd_ind[n-1][i][2] == 0) ? ('') : (upd_ind[n-1][i][2])) + "</td>";
-            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][6] == 0 && upd_ind[n-1][i][5]== 0) ? ('') : (Number(upd_ind[n-1][i][6]).toFixed(2))) + "</exp>" + "</td>";
-            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][7] == 0 && upd_ind[n-1][i][5]== 0) ? ('') : (Number(upd_ind[n-1][i][7]).toFixed(2))) + "</exp>" + "</td>";
-            txt_row += "</tr>";
+        function populate_info_table(){
+            document.getElementById('period').innerHTML = "<b>" + "Period " + "</b>" + this_round + "<b>" + " of " + "</b>" + total_rounds
+            document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(0).toFixed(2)
+            document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
         }
-        $('#sum_table tbody').append(txt_row);
-    }
 
 
-    function create_offer_table(){
-        $("#offer_table tr").remove(); // in case redrawing table
-        let txt_header = "";
-        txt_header += "<tr>";
-        txt_header += "<th style='text-align:center;font-size:100%;'>Price</th>"
-        txt_header += "<th style='text-align:center;font-size:100%;'>Qty</th>"
-        txt_header += "</tr>"
-        $('#offer_table thead').append(txt_header);
+        function populate_actions_div(){
+            document.getElementById('actions_title').innerHTML = ((is_buyer) ? ("Buyer") : ("Seller")) + " Actions"
+            document.getElementById('actions_subtitle').innerHTML = ((is_buyer) ? ("Bids") : ("Asks"))
+            document.getElementById('market_action').innerHTML = "Market " + ((is_buyer) ? ("Buy") : ("Sell"))
 
-    }
+            document.getElementById('btn-lim-order').innerHTML = ((is_buyer) ? ("Bid") : ("Ask"))
+            document.getElementById('btn-mkt-order').innerHTML = ((is_buyer) ? ("Buy") : ("Sell"))
+        }
 
-    function update_offer_table(offer,quant){
-        if (offer > 0 && quant > 0){
-            create_offer_table();
+
+        function populate_bid_ask_table(upd_bids, upd_asks){
+            $("#bid_ask_table_head tr").remove(); // in case redrawing table
+            let txt_header = "";
+            txt_header += "<tr>";
+            txt_header += "<th style='margin:0;padding:0;width:10px;text-align:center;'></th>"
+            txt_header += "<th style='margin:0;padding:0;width:4px;text-align:center;'>Price</th>"
+            txt_header += "<th style='margin:0;padding:0;width:30px;text-align:center;'>Qty</th>"
+            txt_header += "</tr>"
+            $('#bid_ask_table_head thead').append(txt_header);
+
+            if (upd_asks.length !== 0) {
+                $("#ask_table tr").remove(); // in case redrawing table
+                let txt_row_ask = "";
+                for (var i = 0; i < upd_asks.length; i++){
+                    txt_row_ask += "<tr>";
+                    txt_row_ask += "<td style='margin:0;padding:0;width:2px;text-align:center;font-size:75%;'>" + "</td>";
+                    txt_row_ask += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + "<exp>" + Number(upd_asks[i][0]).toFixed(2) + "</exp>" + "</td>";
+                    txt_row_ask += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + upd_asks[i][1] + "</td>";
+                    txt_row_ask += "</tr>";
+                }
+                $('#ask_table tbody').append(txt_row_ask);
+            } else {
+                $("#ask_table tr").remove(); // in case redrawing table
+            }
+
+            if (upd_bids.length !== 0){
+                $("#bid_table tr").remove(); // in case redrawing table
+                let txt_row_bid = "";
+                for (var i = 0; i < upd_bids.length; i++){
+                    txt_row_bid += "<tr>";
+                    txt_row_bid += "<td style='margin:0;padding:0;width:2px;text-align:center;font-size:75%;'>" + "</td>";
+                    txt_row_bid += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + "<exp>" + Number(upd_bids[i][0]).toFixed(2) + "</exp>" + "</td>";
+                    txt_row_bid += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + upd_bids[i][1] + "</td>";
+                    txt_row_bid += "</tr>";
+                }
+                $('#bid_table tbody').append(txt_row_bid);
+            } else {
+                $("#bid_table tr").remove();
+            }
+        }
+
+
+        function populate_best_bid_ask_table(upd_bids, upd_asks){
+            $("#best_bid_ask_table tr").remove(); // in case redrawing table
+            let txt_header = "";
+            txt_header += "<tr>";
+            txt_header += "<th style='width:50%;'></th>"
+            txt_header += "<th style='width:25%;'>Price</th>"
+            txt_header += "<th style='width:25%;'>Qty</th>"
+            txt_header += "</tr>"
+            $('#best_bid_ask_table thead').append(txt_header);
+
             let txt_row = "";
-
             txt_row += "<tr>";
-            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:100%;'>" + "<exp>" + ((offer > 0) ? (Number(offer).toFixed(2)) : ("")) + "</exp>" + "</td>";
-            txt_row += "<td style='vertical-align:middle;text-align:center;font-size:100%;'>" + ((quant > 0) ? (quant) : ("")) + "</td>";
+            txt_row += "<td>" + "<b>" + "Best Ask:" + "</b>" + "</td>";
+            txt_row += "<td>" + ((upd_asks.length == 0) ? ('') : (Number(upd_asks[upd_asks.length-1][0]).toFixed(2))) + "</td>";
+            txt_row += "<td>" + ((upd_asks.length == 0) ? ('') : (upd_asks[upd_asks.length-1][1])) + "</td>";
             txt_row += "</tr>";
-
-            offer_c = Number(offer).toFixed(2);
-            quant_c = quant;
-
-            $('#offer_table tbody').append(txt_row);
-        } else {
-            create_offer_table();
-            offer_c = 0;
-            quant_c = 0;
+            txt_row += "<tr>";
+            txt_row += "<td>" + "<b>" + "Best Bid:" + "</b>" + "</td>";
+            txt_row += "<td>" + ((upd_bids.length == 0) ? ('') : (Number(upd_bids[0][0]).toFixed(2))) + "</td>";
+            txt_row += "<td>" + ((upd_bids.length == 0) ? ('') : (upd_bids[0][1])) + "</td>";
+            txt_row += "</tr>";
+            $('#best_bid_ask_table tbody').append(txt_row);
         }
-    }
 
 
-    function update_messages(event, news){
-        if (event){
-            let {id_sender, time_event, offer_amt, offer_qt, order_type} = event;
-            if (id_sender == my_id){
-                if (order_type == 'limit'){
-                    if (is_buyer){
-                        event_messages.innerHTML += time_event + ": Submitted bid for " + offer_qt + " unit(s) at " + Number(offer_amt).toFixed(2) + "." + "<br>"
-                    } else {
-                        event_messages.innerHTML += time_event + ": Submitted ask for " + offer_qt + " unit(s) at " + Number(offer_amt).toFixed(2) + "." + "<br>"
+        function populate_sum_table(n, upd_ind){
+            $("#sum_table tr").remove(); // in case redrawing table
+            let txt_header = "";
+            txt_header += "<tr>";
+            txt_header += "<th style='text-align:center;font-size:75%;'>Value</th>"
+            txt_header += "<th style='text-align:center;font-size:75%;'>Price</th>"
+            txt_header += "<th style='text-align:center;font-size:75%;'>" + "#" + "<br>" + "Endowed" + "</th>"
+            txt_header += "<th style='text-align:center;font-size:75%;'>" +  ((is_buyer) ? ("#" + "<br>" + "Bought") : ("#" + "<br>" + "Sold"))  +"</th>"
+            txt_header += "<th style='text-align:center;font-size:75%;'>Unit Profit</th>"
+            txt_header += "<th style='text-align:center;font-size:75%;'>Total Profit</th>"
+            txt_header += "</tr>"
+            $('#sum_table thead').append(txt_header);
+
+            let txt_row = "";
+            for (var i = 0; i < upd_ind[n-1].length; i++){
+                txt_row += "<tr>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][0] == 0) ? ('') : (Number(upd_ind[n-1][i][0]).toFixed(2))) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][5] == 0) ? ('') : (Number(upd_ind[n-1][i][5]).toFixed(2))) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:16%;'>" + ((upd_ind[n-1][i][1] == 0) ? ('') : (upd_ind[n-1][i][1])) + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:16%;'>" + ((upd_ind[n-1][i][2] == 0) ? ('') : (upd_ind[n-1][i][2])) + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][6] == 0 && upd_ind[n-1][i][5]== 0) ? ('') : (Number(upd_ind[n-1][i][6]).toFixed(2))) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;font-size:75%;width:28%;'>" + "<exp>" + ((upd_ind[n-1][i][7] == 0 && upd_ind[n-1][i][5]== 0) ? ('') : (Number(upd_ind[n-1][i][7]).toFixed(2))) + "</exp>" + "</td>";
+                txt_row += "</tr>";
+            }
+            $('#sum_table tbody').append(txt_row);
+        }
+
+
+        function create_offer_table(){
+            $("#offer_table tr").remove(); // in case redrawing table
+            let txt_header = "";
+            txt_header += "<tr>";
+            txt_header += "<th style='text-align:center;font-size:100%;'>Price</th>"
+            txt_header += "<th style='text-align:center;font-size:100%;'>Qty</th>"
+            txt_header += "</tr>"
+            $('#offer_table thead').append(txt_header);
+        }
+
+
+        function update_offer_table(offer,quant){
+            if (offer > 0 && quant > 0){
+                create_offer_table();
+                let txt_row = "";
+
+                txt_row += "<tr>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;font-size:100%;'>" + "<exp>" + ((offer > 0) ? (Number(offer).toFixed(2)) : ("")) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;font-size:100%;'>" + ((quant > 0) ? (quant) : ("")) + "</td>";
+                txt_row += "</tr>";
+
+                if (rel_price_imp != "all"){
+                    offer_c = Number(offer).toFixed(2);
+                }
+                quant_c = quant;
+
+                $('#offer_table tbody').append(txt_row);
+            } else {
+                create_offer_table();
+                if (rel_price_imp != "all"){
+                    offer_c = 0;
+                }
+                quant_c = 0;
+            }
+        }
+
+
+        function update_messages(event, news){
+            if (event){
+                let {id_sender, time_event, offer_amt, offer_qt, order_type} = event;
+                if (id_sender == my_id){
+                    if (order_type == 'limit'){
+                        if (is_buyer){
+                            event_messages.innerHTML += time_event + ": Submitted bid for " + offer_qt + " unit(s) at " + Number(offer_amt).toFixed(2) + "." + "<br>"
+                        } else {
+                            event_messages.innerHTML += time_event + ": Submitted ask for " + offer_qt + " unit(s) at " + Number(offer_amt).toFixed(2) + "." + "<br>"
+                        }
                     }
                 }
             }
-        }
-        if (news) {
-            for (var i = 0; i < news.length; i++){
-                if (news[i][0] == my_id) {
-                    if (news[i][5] == 'limit'){
-                        if (news[i][7] == 'bid'){
+            if (news) {
+                for (var i = 0; i < news.length; i++){
+                    if (news[i][0] == my_id) {
+                        if (news[i][5] == 'limit'){
+                            if (news[i][7] == 'bid'){
+                                event_messages.innerHTML += news[i][4] + ": Purchased " + news[i][3]  + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                            } else {
+                                event_messages.innerHTML += news[i][4] + ": Bid accepted for " +  news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                            }
+                        } else {
                             event_messages.innerHTML += news[i][4] + ": Purchased " + news[i][3]  + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
-                        } else {
-                            event_messages.innerHTML += news[i][4] + ": Bid accepted for " +  news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
                         }
-                    } else {
-                        event_messages.innerHTML += news[i][4] + ": Purchased " + news[i][3]  + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
-                    }
-                } else if (news[i][1] == my_id) {
-                    if (news[i][6] == 'limit'){
-                        if (news[i][7] == 'ask'){
+                    } else if (news[i][1] == my_id) {
+                        if (news[i][6] == 'limit'){
+                            if (news[i][7] == 'ask'){
+                                event_messages.innerHTML += news[i][4] + ": Sold " + news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                            } else {
+                                event_messages.innerHTML += news[i][4] + ": Ask accepted for " + news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                            }
+                        } else {
                             event_messages.innerHTML += news[i][4] + ": Sold " + news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
-                        } else {
-                            event_messages.innerHTML += news[i][4] + ": Ask accepted for " + news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
                         }
-                    } else {
-                        event_messages.innerHTML += news[i][4] + ": Sold " + news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
                     }
                 }
             }
         }
-    }
 
-    function update_quant1(inducement){
-        let max_quant1 = 0
-        for (var i = 0; i < inducement[this_round-1].length; i++){
-            max_quant1 += inducement[this_round-1][i][3]
-        }
 
-        my_quant1.max = parseInt(max_quant1);
-
-        return max_quant1
-    }
-
-    function update_quant2(inducement){
-        let val_1 = 0
-        for (var i = 0; i < inducement[this_round-1].length; i++){
-            val_1 += inducement[this_round-1][i][3]
-        }
-
-        let val_2 = 0
-        let unit_bids = 0
-        let unit_asks = 0
-        for (var i = 0; i < upd_bids.length; i++){
-            unit_bids = unit_bids + upd_bids[i][1]
-        }
-        for (var i = 0; i < upd_asks.length; i++){
-            unit_asks = unit_asks + upd_asks[i][1]
-        }
-
-        if (is_buyer==true){
-            if (upd_asks !== []){
-                val_2 = unit_asks
-            } else {
-                val_2 = 0
+        function update_quant1(inducement){
+            let max_quant1 = 0
+            for (var i = 0; i < inducement[this_round-1].length; i++){
+                max_quant1 += inducement[this_round-1][i][3]
             }
-        } else {
-            if (upd_bids !== []){
-                val_2 = unit_bids
-            } else {
-                val_2 = 0
+
+            my_quant1.max = parseInt(max_quant1);
+
+            return max_quant1
+        }
+
+
+        function update_quant2(inducement){
+            let val_1 = 0
+            for (var i = 0; i < inducement[this_round-1].length; i++){
+                val_1 += inducement[this_round-1][i][3]
             }
+
+            let val_2 = 0
+            let unit_bids = 0
+            let unit_asks = 0
+            for (var i = 0; i < upd_bids.length; i++){
+                unit_bids = unit_bids + upd_bids[i][1]
+            }
+            for (var i = 0; i < upd_asks.length; i++){
+                unit_asks = unit_asks + upd_asks[i][1]
+            }
+
+            if (is_buyer==true){
+                if (upd_asks !== []){
+                    val_2 = unit_asks
+                } else {
+                    val_2 = 0
+                }
+            } else {
+                if (upd_bids !== []){
+                    val_2 = unit_bids
+                } else {
+                    val_2 = 0
+                }
+            }
+
+            max_quant2 = Math.min(val_1,val_2)
+
+            my_quant2.max = parseInt(max_quant2);
+
+            return max_quant2
         }
 
-        max_quant2 = Math.min(val_1,val_2)
 
-        my_quant2.max = parseInt(max_quant2);
-
-        return max_quant2
-    }
-
-
-    function liveRecv(data) {
-        console.log(data);
-
-        let {bids, asks, highcharts_series, current_offer, current_quant, inducement, news, event, payoff, session_payoff} = data;
-
-        $("#btn-mkt-order").attr('disabled', true);
-
-        if (is_buyer && asks.length !== 0 && my_quant2.value !== ""){
-            $("#btn-mkt-order").attr('disabled', false);
-        } else if (!is_buyer && bids.length !== 0 && my_quant2.value !== ""){
-            $("#btn-mkt-order").attr('disabled', false);
+        function get_min_md_arr(arr,idx){
+            return Math.min.apply(null, arr.map(function (e) {return e[idx]}));
         }
 
-        upd_bids = JSON.parse(JSON.stringify(bids));
-        upd_asks = JSON.parse(JSON.stringify(asks));
-        upd_ind = JSON.parse(JSON.stringify(inducement));
 
-        populate_bid_ask_table(bids, asks);
-        populate_best_bid_ask_table(bids, asks);
-
-        period_earnings = payoff;
-        session_earnings = session_payoff;
-        update_earnings(period_earnings,session_earnings);
-
-        update_messages(event, news);
-
-        if (news) {
-            populate_sum_table(this_round,inducement);
-            update_quant1(inducement);
-            update_quant2(inducement);
-            update_offer_table(current_offer,current_quant);
+        function get_max_md_arr(arr,idx){
+            return Math.max.apply(null, arr.map(function (e) {return e[idx]}));
         }
 
-    }
 
-    function marketOrder(){
-        liveSend({'quant': my_quant2.value, 'market_order': "Yes", 'limit_order': ""})
-    }
+        function liveRecv(data) {
+            let {bids, asks, highcharts_series, current_offer, current_quant, inducement, news, event, payoff, session_payoff} = data;
 
-    function limitOrder(){
-        liveSend({'quant': my_quant1.value, 'market_order': "", 'limit_order': my_offer.value})
-    }
+            $("#btn-mkt-order").attr('disabled', true);
 
-    window.addEventListener('DOMContentLoaded', (event) => {
-        liveSend({});
-    });
+            if (is_buyer && asks.length !== 0 && my_quant2.value !== ""){
+                $("#btn-mkt-order").attr('disabled', false);
+            } else if (!is_buyer && bids.length !== 0 && my_quant2.value !== ""){
+                $("#btn-mkt-order").attr('disabled', false);
+            }
 
-</script>
+            upd_bids = JSON.parse(JSON.stringify(bids));
+            upd_asks = JSON.parse(JSON.stringify(asks));
+            upd_ind = JSON.parse(JSON.stringify(inducement));
+
+            multi_unit_trading_check();
+
+            if (rel_price_imp == "all"){
+                if (is_buyer && upd_bids.length!=0) {
+                    offer_c = get_max_md_arr(upd_bids,0);
+                } else if (!is_buyer && upd_asks.length!=0){
+                    offer_c = get_min_md_arr(upd_asks,0);
+                } else {
+                    offer_c = 0;
+                }
+            }
+
+            populate_bid_ask_table(bids, asks);
+            populate_best_bid_ask_table(bids, asks);
+
+            period_earnings = payoff;
+            session_earnings = session_payoff;
+            update_earnings(period_earnings,session_earnings);
+
+            update_messages(event, news);
+
+            if (news) {
+                populate_sum_table(this_round,inducement);
+                update_quant1(inducement);
+                update_quant2(inducement);
+                update_offer_table(current_offer,current_quant);
+            }
+
+        }
+
+
+        function marketOrder(){
+            liveSend({'quant': my_quant2.value, 'market_order': "Yes", 'limit_order': ""})
+        }
+
+
+        function limitOrder(){
+            liveSend({'quant': my_quant1.value, 'market_order': "", 'limit_order': my_offer.value})
+        }
+
+
+        window.addEventListener('DOMContentLoaded', (event) => {
+            liveSend({});
+        });
+    </script>
 
 {{ endblock }}

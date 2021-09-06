@@ -7,9 +7,10 @@ SESSION_CONFIGS = [
         app_sequence=['double_auction'],
         num_rounds=3,
         num_demo_participants=4,
-        timeout_seconds=600,
-        wait_timeout_seconds=30,
-        multiple_unit_trading=False,
+        timeout_seconds=180,
+        wait_timeout_seconds=10,
+        multiple_unit_trading=True,
+        relative_price_imp="self",
 
     ),
     dict(
@@ -115,5 +116,5 @@ SECRET_KEY = '4387860144726'
 # if an app is included in SESSION_CONFIGS, you don't need to list it here
 INSTALLED_APPS = ['otree']
 
-PARTICIPANT_FIELDS = ['stimuli', 'responses', 'reaction_times', 'order']
-SESSION_FIELDS = ['starting_price','ending_price','total_rounds','timeout_seconds','presets_template', 'seller_type1_presets', 'seller_type2_presets','buyer_type1_presets','buyer_type2_presets']
+#PARTICIPANT_FIELDS = ['stimuli', 'responses', 'reaction_times', 'order']
+#SESSION_FIELDS = ['starting_price','ending_price','total_rounds','timeout_seconds','presets_template', 'seller_type1_presets', 'seller_type2_presets','buyer_type1_presets','buyer_type2_presets']
