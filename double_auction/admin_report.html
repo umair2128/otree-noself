@@ -1,0 +1,102 @@
+<!-- Bootstrap CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+<!-- Bootstrap Font Icon CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+
+<!-- Linking Highcharts -->
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+<script src="https://code.highcharts.com/modules/boost.js"></script>
+
+
+<div id="Graph" style="height: 400px"></div>
+
+<p>Here is the sorted list of payoffs in round {{ subsession.round_number }}</p>
+
+<ul>
+    {{ for payoff in payoffs }}
+        <li>{{ payoff }}</li>
+    {{ endfor }}
+</ul>
+
+
+
+<style>
+
+    form {
+        display: none;
+    }
+</style>
+
+<script>
+
+    let buyers_data = {{buyers_data | safe}};
+    let sellers_data = {{sellers_data | safe}};
+    let max_y_axis = {{max_y_axis | safe}};
+    let diff_y_axis = {{diff_y_axis | safe}};
+
+
+    console.log("buyers data: ", buyers_data);
+    console.log("sellers data: ", sellers_data);
+    console.log("max_y_axis: ", max_y_axis);
+    console.log("diff_y_axis: ", diff_y_axis);
+
+
+        $('#Graph').highcharts({
+            chart: {
+                animation: false,
+                zoomType: 'y',
+            },
+            title: {
+                text: "Title here",
+            },
+            legend: {
+                enabled: true,
+            },
+            credits: {
+                enabled: false
+            },
+            exporting: {
+                enabled: false
+            },
+            plotOptions: {
+                series: {
+                    pointStart:0,
+                    enableMouseTracking: false,
+                    marker: {
+                        enabled: false,
+                        symbol: 'circle',
+                        radius: 3
+                    },
+                }
+            },
+            xAxis: {
+                title: {
+                    text: 'Quantity',
+                },
+                min:0,
+                tickInterval: 1,
+            },
+            yAxis: {
+                title: {
+                    text: 'Price (in $)',
+                },
+                min:0,
+                max: max_y_axis[0],
+                tickInterval: 1,
+            },
+            series: [{
+                name: "Demand Curve",
+                data: buyers_data[0],
+                step:true,
+            },
+            {
+                name: "Supply Curve",
+                data: sellers_data[0],
+                step:true,
+            }],
+        });
+
+</script>

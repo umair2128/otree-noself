@@ -28,6 +28,104 @@ class Subsession(BaseSubsession):
 
 
 
+def vars_for_admin_report(subsession):
+    payoffs = sorted([p.payoff for p in subsession.get_players()])
+
+    num_buyers = 0
+    num_sellers = 0
+    type1_buyers = 0
+    type1_sellers = 0
+
+    for p in subsession.get_players():
+        if p.is_buyer:
+            num_buyers += 1
+            if p.type == 1:
+                type1_buyers += 1
+        else:
+            num_sellers += 1
+            if p.type == 1:
+                type1_sellers += 1
+
+    buyer_type1_data = [[[type1_buyers*int(subsession.session.buyer_type1_presets[j][i][1]), subsession.session.buyer_type1_presets[j][i][0]] for i in range(Constants.num_units)] for j in range(subsession.session.config['num_rounds'])]
+    buyer_type2_data = [[[(num_buyers-type1_buyers)*int(subsession.session.buyer_type2_presets[j][i][1]), subsession.session.buyer_type2_presets[j][i][0]] for i in range(Constants.num_units)] for j in range(subsession.session.config['num_rounds'])]
+    seller_type1_data = [[[type1_sellers*int(subsession.session.seller_type1_presets[j][i][1]), subsession.session.seller_type1_presets[j][i][0]] for i in range(Constants.num_units)] for j in range(subsession.session.config['num_rounds'])]
+    seller_type2_data = [[[(num_sellers-type1_sellers)*int(subsession.session.seller_type2_presets[j][i][1]), subsession.session.seller_type2_presets[j][i][0]] for i in range(Constants.num_units)] for j in range(subsession.session.config['num_rounds'])]
+
+    buyers_data = []
+
+    for i in range(subsession.session.config['num_rounds']):
+        temp_1 = []
+        for j in range(Constants.num_units+1):
+            if j < Constants.num_units:
+                temp_1.append(buyer_type1_data[i][j])
+                temp_1.append(buyer_type2_data[i][j])
+            else:
+                temp_1.append([0,buyer_type2_data[i][j-1][1]-((buyer_type1_data[i][j-1][1]-buyer_type2_data[i][j-1][1]))])
+        buyers_data.append(temp_1)
+
+    for i in range(subsession.session.config['num_rounds']):
+        for j in range(2*Constants.num_units + 1):
+            if j > 0:
+                buyers_data[i][j][0] += buyers_data[i][j-1][0]
+
+    temp_2=str(copy.deepcopy(buyers_data))
+    for i in range(subsession.session.config['num_rounds']):
+        for j in range(2*Constants.num_units+1):
+            if j > 0:
+                buyers_data[i][j][0] = ast.literal_eval(temp_2)[i][j-1][0]
+            else:
+                buyers_data[i][j][0] = 0
+
+    sellers_data = []
+
+    for i in range(subsession.session.config['num_rounds']):
+        temp_1 = []
+        for j in range(Constants.num_units+1):
+            if j < Constants.num_units:
+                temp_1.append(seller_type1_data[i][j])
+                temp_1.append(seller_type2_data[i][j])
+            else:
+                temp_1.append([0,seller_type2_data[i][j-1][1]+((seller_type2_data[i][j-1][1]-seller_type1_data[i][j-1][1]))])
+        sellers_data.append(temp_1)
+
+    for i in range(subsession.session.config['num_rounds']):
+        for j in range(2*Constants.num_units + 1):
+            if j > 0:
+                sellers_data[i][j][0] += sellers_data[i][j-1][0]
+
+    temp_2=str(copy.deepcopy(sellers_data))
+    for i in range(subsession.session.config['num_rounds']):
+        for j in range(2*Constants.num_units+1):
+            if j > 0:
+                sellers_data[i][j][0] = ast.literal_eval(temp_2)[i][j-1][0]
+            else:
+                sellers_data[i][j][0] = 0
+
+    for i in range(subsession.session.config['num_rounds']):
+        sellers_data[i].append([0,0])
+        sellers_data[i].sort(key=lambda x: x[1])
+        sellers_data[i][2*Constants.num_units+1][1]=1000
+        buyers_data[i].append([0, 1000])
+        buyers_data[i].sort(key=lambda x: x[1], reverse=True)
+        buyers_data[i][2 * Constants.num_units + 1][1] = 0
+
+    diff_y_axis = []
+    max_y_axis = []
+    for i in range(subsession.session.config['num_rounds']):
+        diff_y_axis.append(sellers_data[i][1][1])
+        max_y_axis.append(buyers_data[i][1][1]+diff_y_axis[i])
+
+    return dict(
+        payoffs=payoffs,
+        buyers_data=buyers_data,
+        sellers_data=sellers_data,
+        max_y_axis=max_y_axis,
+        diff_y_axis=diff_y_axis,
+    )
+
+
+
+
 def creating_session(subsession: Subsession):
     if subsession.round_number == 1: # Assigning values to session-level variables, i.e., variables which take on values once and these values are assigned at the beginning of the experiment
         session = subsession.session
@@ -204,7 +302,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
         #The following three variables are used to record the time on the countdown timer when a buyer/seller submits a limit order (i.e. bid/ask)
         event_sec = Group.timeout_seconds + group.start_timestamp - time.time()
         event_min,event_sec = divmod(event_sec, 60)
-        time_event = str(int(event_min)) + ":" + str(int(event_sec))
+        time_event = str(int(event_min)) + ":" + str(int(event_sec)).zfill(2)
 
         event = dict(id_sender=player.id_in_group, time_event=time_event,
                      offer_amt=player.current_offer, offer_qt=player.current_quant,order_type=type_of_order)
@@ -315,7 +413,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                 # The following three variables are used to record the time on the countdown timer when a trade takes place
                 tx_sec = Group.timeout_seconds + group.start_timestamp - time.time()
                 tx_min, tx_sec = divmod(tx_sec, 60)
-                time_tx = str(int(tx_min)) + ":" + str(int(tx_sec))
+                time_tx = str(int(tx_min)) + ":" + str(int(tx_sec)).zfill(2)
 
                 # To be used later for the admin report
                 Transaction.create(
