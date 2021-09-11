@@ -10,47 +10,166 @@
 <script src="https://code.highcharts.com/modules/accessibility.js"></script>
 <script src="https://code.highcharts.com/modules/boost.js"></script>
 
+<div class="container">
+    <div class="row" style="vertical-align:middle;align-items:left;">
+        <div class="col-1" style="border: none;">
+            <button class="btn-sm btn-primary" type="button" id="btn-first"><i class="bi-chevron-double-left"></i></button>
+        </div>
+        <div class="col-1" style="border: none;">
+            <button class="btn-sm btn-primary" type="button" id="btn-prev"><i class="bi-chevron-left"></i></button>
+        </div>
+        <div class="col-7" style="border: none;text-align:center;">
+            <span id="hist_text"></span>
+        </div>
+        <div class="col-1" style="border: none;">
+            <button class="btn-sm btn-primary" type="button" id="btn-next"><i class="bi-chevron-right"></i></button>
+        </div>
+        <div class="col-1" style="border: none;">
+            <button class="btn-sm btn-primary" type="button" id="btn-last"><i class="bi-chevron-double-right"></i></button>
+        </div>
+    </div>
 
-<div id="Graph" style="height: 400px"></div>
+    <div class="row">
+        <div id="Graph" style="height: 400px"></div>
+    </div>
 
-<p>Here is the sorted list of payoffs in round {{ subsession.round_number }}</p>
-
-<ul>
-    {{ for payoff in payoffs }}
-        <li>{{ payoff }}</li>
-    {{ endfor }}
-</ul>
-
+    <div class="row">
+        <span id="description"></span>
+    </div>
+</div>
 
 
 <style>
-
     form {
         display: none;
+    }
+
+    .btn-sm.btn-primary[disabled] {
+        background-color: #8ac8ff;
+        border-color: #66b8ff;
     }
 </style>
 
 <script>
-
     let buyers_data = {{buyers_data | safe}};
     let sellers_data = {{sellers_data | safe}};
-    let max_y_axis = {{max_y_axis | safe}};
-    let diff_y_axis = {{diff_y_axis | safe}};
-
+    let total_rounds = {{total_rounds | safe}};
+    let hist_text = document.getElementById('hist_text');
+    let description = document.getElementById('description');
+    let hist_round = 1;
+    let max_y = 100;
+    let min_y = 0;
+    let eq_q = 0;
+    let eq_p_l = 0;
+    let eq_p_h = 0;
 
     console.log("buyers data: ", buyers_data);
     console.log("sellers data: ", sellers_data);
-    console.log("max_y_axis: ", max_y_axis);
-    console.log("diff_y_axis: ", diff_y_axis);
 
+    window.onload = function () {
+        reset_hist_nav_buttons();
+        set_yaxis_limits(hist_round);
+        set_eq(hist_round);
+        draw_graph(hist_round);
+    }
+
+
+    function set_yaxis_limits(hist_round){
+        max_y = buyers_data[hist_round-1][1][1] + 5;
+        min_y = sellers_data[hist_round-1][1][1] - 5;
+    }
+
+
+    function set_eq(hist_round){
+        for (var i = 0; i < buyers_data[hist_round-1].length; i++){
+            if (buyers_data[hist_round-1][i][1]<sellers_data[hist_round-1][i][1]){break;}
+            eq_q = buyers_data[hist_round-1][i+1][0];
+            eq_p_l = buyers_data[hist_round-1][i+1][1];
+            eq_p_h = sellers_data[hist_round-1][i+1][1];
+        }
+    }
+
+
+    function reset_hist_nav_buttons(){
+        hist_text.innerHTML = "Period " + hist_round + " Data";
+
+        $("#btn-first").attr('disabled', true);
+        $("#btn-prev").attr('disabled', true);
+        $("#btn-next").attr('disabled', false);
+        $("#btn-last").attr('disabled', false);
+    }
+
+
+    $("#btn-first").on('click', function(e){
+        hist_round = 1;
+        hist_text.innerHTML = "Period " + hist_round + " Data";
+        set_yaxis_limits(hist_round);
+        set_eq(hist_round);
+        draw_graph(hist_round);
+        $("#btn-first").attr('disabled', true);
+        $("#btn-prev").attr('disabled', true);
+        $("#btn-next").attr('disabled', false);
+        $("#btn-last").attr('disabled', false);
+    });
+
+
+    $("#btn-prev").on('click', function(e){
+        $("#btn-next").attr('disabled', false);
+        $("#btn-last").attr('disabled', false);
+
+        hist_round = hist_round - 1;
+        hist_text.innerHTML = "Period " + hist_round + " Data";
+        set_yaxis_limits(hist_round);
+        set_eq(hist_round);
+        draw_graph(hist_round);
+
+        if (hist_round == 1){
+            $("#btn-first").attr('disabled', true);
+            $("#btn-prev").attr('disabled', true);
+        }
+    });
+
+
+    $("#btn-next").on('click', function(e){
+        $("#btn-prev").attr('disabled', false);
+        $("#btn-first").attr('disabled', false);
+
+        hist_round = hist_round + 1;
+        hist_text.innerHTML = "Period " + hist_round + " Data";
+        set_yaxis_limits(hist_round);
+        set_eq(hist_round);
+        draw_graph(hist_round);
+
+        if (hist_round == total_rounds){
+            $("#btn-next").attr('disabled', true);
+            $("#btn-last").attr('disabled', true);
+        }
+    });
+
+
+    $("#btn-last").on('click', function(e){
+        hist_round = total_rounds;
+        hist_text.innerHTML = "Period " + hist_round + " Data";
+        set_yaxis_limits(hist_round);
+        set_eq(hist_round);
+        draw_graph(hist_round);
+        $("#btn-first").attr('disabled', false);
+        $("#btn-prev").attr('disabled', false);
+        $("#btn-next").attr('disabled', true);
+        $("#btn-last").attr('disabled', true);
+    });
+
+
+    function draw_graph(hist_round){
+        description.innerHTML = "<p>" + "The predicted equilibrium quantity is " + eq_q + "." + "</p>" +
+        "<p>" + "The predicted equilibrium price range is between ECU " + Number(eq_p_l).toFixed(2) + " and ECU " + Number(eq_p_h).toFixed(2) + "." + "</p>";
 
         $('#Graph').highcharts({
             chart: {
                 animation: false,
-                zoomType: 'y',
             },
             title: {
-                text: "Title here",
+                text: "Predicted Market Demand and Supply Curves",
             },
             legend: {
                 enabled: true,
@@ -67,8 +186,6 @@
                     enableMouseTracking: false,
                     marker: {
                         enabled: false,
-                        symbol: 'circle',
-                        radius: 3
                     },
                 }
             },
@@ -81,22 +198,24 @@
             },
             yAxis: {
                 title: {
-                    text: 'Price (in $)',
+                    text: 'Price (in ECUs)',
                 },
-                min:0,
-                max: max_y_axis[0],
+                min:min_y,
+                max: max_y,
                 tickInterval: 1,
             },
             series: [{
                 name: "Demand Curve",
-                data: buyers_data[0],
+                data: buyers_data[hist_round-1],
+                color:'#0275d8',
                 step:true,
             },
             {
                 name: "Supply Curve",
-                data: sellers_data[0],
+                data: sellers_data[hist_round-1],
+                color:'#d9534f',
                 step:true,
             }],
         });
-
+    }
 </script>

@@ -15,9 +15,9 @@ class Constants(BaseConstants):
     name_in_url = 'double_auction'
     players_per_group = None
     num_rounds = 100 # Arbitrarily set over here. Session configs determine the actual number of rounds
-    min_induced_price = 20 # The lower threshold for the first 'step' of seller's induced value
-    num_units = 5 # 'units' here is confusing. Actually, this determines the total number of 'steps' on a subject's demand/supply curve (each step can have multiple units at that particular induced value)
-    eq_units_per_player = 4 # To get theoretical predictions, this specifies the number of 'steps' for which it is optimal for a subject to trade (In aggregation, this helps in giving the point of vertical intersection of the market demand and supply curves)
+    #min_induced_price = 20 # The lower threshold for the first 'step' of seller's induced value
+    #num_units = 5 # 'units' here is confusing. Actually, this determines the total number of 'steps' on a subject's demand/supply curve (each step can have multiple units at that particular induced value)
+    #eq_units_per_player = 4 # To get theoretical predictions, this specifies the number of 'steps' for which it is optimal for a subject to trade (In aggregation, this helps in giving the point of vertical intersection of the market demand and supply curves)
 
 
 
@@ -29,98 +29,184 @@ class Subsession(BaseSubsession):
 
 
 def vars_for_admin_report(subsession):
-    payoffs = sorted([p.payoff for p in subsession.get_players()])
-
     num_buyers = 0
     num_sellers = 0
-    type1_buyers = 0
-    type1_sellers = 0
 
-    for p in subsession.get_players():
-        if p.is_buyer:
-            num_buyers += 1
-            if p.type == 1:
-                type1_buyers += 1
-        else:
-            num_sellers += 1
-            if p.type == 1:
-                type1_sellers += 1
+    # The following long block of code basically processes the data on inducements so that it can be presented using highcharts as stepped demand and supply curves.
+    if subsession.session.num_types == 2:
+        type1_buyers = 0
+        type1_sellers = 0
 
-    buyer_type1_data = [[[type1_buyers*int(subsession.session.buyer_type1_presets[j][i][1]), subsession.session.buyer_type1_presets[j][i][0]] for i in range(Constants.num_units)] for j in range(subsession.session.config['num_rounds'])]
-    buyer_type2_data = [[[(num_buyers-type1_buyers)*int(subsession.session.buyer_type2_presets[j][i][1]), subsession.session.buyer_type2_presets[j][i][0]] for i in range(Constants.num_units)] for j in range(subsession.session.config['num_rounds'])]
-    seller_type1_data = [[[type1_sellers*int(subsession.session.seller_type1_presets[j][i][1]), subsession.session.seller_type1_presets[j][i][0]] for i in range(Constants.num_units)] for j in range(subsession.session.config['num_rounds'])]
-    seller_type2_data = [[[(num_sellers-type1_sellers)*int(subsession.session.seller_type2_presets[j][i][1]), subsession.session.seller_type2_presets[j][i][0]] for i in range(Constants.num_units)] for j in range(subsession.session.config['num_rounds'])]
-
-    buyers_data = []
-
-    for i in range(subsession.session.config['num_rounds']):
-        temp_1 = []
-        for j in range(Constants.num_units+1):
-            if j < Constants.num_units:
-                temp_1.append(buyer_type1_data[i][j])
-                temp_1.append(buyer_type2_data[i][j])
+        for p in subsession.get_players():
+            if p.is_buyer:
+                num_buyers += 1
+                if p.type == 1:
+                    type1_buyers += 1
             else:
-                temp_1.append([0,buyer_type2_data[i][j-1][1]-((buyer_type1_data[i][j-1][1]-buyer_type2_data[i][j-1][1]))])
-        buyers_data.append(temp_1)
+                num_sellers += 1
+                if p.type == 1:
+                    type1_sellers += 1
 
-    for i in range(subsession.session.config['num_rounds']):
-        for j in range(2*Constants.num_units + 1):
-            if j > 0:
-                buyers_data[i][j][0] += buyers_data[i][j-1][0]
+        buyer_type1_data = [[[type1_buyers * int(subsession.session.buyer_type1_presets[j][i][1]),
+                              subsession.session.buyer_type1_presets[j][i][0]] for i in
+                             range(subsession.session.num_induc_val_steps)] for j in
+                            range(subsession.session.total_rounds)]
+        buyer_type2_data = [[[(num_buyers - type1_buyers) * int(subsession.session.buyer_type2_presets[j][i][1]),
+                              subsession.session.buyer_type2_presets[j][i][0]] for i in
+                             range(subsession.session.num_induc_val_steps)] for j in
+                            range(subsession.session.total_rounds)]
+        seller_type1_data = [[[type1_sellers * int(subsession.session.seller_type1_presets[j][i][1]),
+                               subsession.session.seller_type1_presets[j][i][0]] for i in
+                              range(subsession.session.num_induc_val_steps)] for j in
+                             range(subsession.session.total_rounds)]
+        seller_type2_data = [[[(num_sellers - type1_sellers) * int(subsession.session.seller_type2_presets[j][i][1]),
+                               subsession.session.seller_type2_presets[j][i][0]] for i in
+                              range(subsession.session.num_induc_val_steps)] for j in
+                             range(subsession.session.total_rounds)]
 
-    temp_2=str(copy.deepcopy(buyers_data))
-    for i in range(subsession.session.config['num_rounds']):
-        for j in range(2*Constants.num_units+1):
-            if j > 0:
-                buyers_data[i][j][0] = ast.literal_eval(temp_2)[i][j-1][0]
+        buyers_data = []
+
+        for i in range(subsession.session.total_rounds):
+            temp_1 = []
+            for j in range(subsession.session.num_induc_val_steps + 1):
+                if j < subsession.session.num_induc_val_steps:
+                    temp_1.append(buyer_type1_data[i][j])
+                    temp_1.append(buyer_type2_data[i][j])
+                else:
+                    temp_1.append([0, buyer_type2_data[i][j - 1][1] - (
+                    (buyer_type1_data[i][j - 1][1] - buyer_type2_data[i][j - 1][1]))])
+            buyers_data.append(temp_1)
+
+        for i in range(subsession.session.total_rounds):
+            for j in range(2 * subsession.session.num_induc_val_steps + 1):
+                if j > 0:
+                    buyers_data[i][j][0] += buyers_data[i][j - 1][0]
+
+        temp_2 = str(copy.deepcopy(buyers_data))
+        for i in range(subsession.session.total_rounds):
+            for j in range(2 * subsession.session.num_induc_val_steps + 1):
+                if j > 0:
+                    buyers_data[i][j][0] = ast.literal_eval(temp_2)[i][j - 1][0]
+                else:
+                    buyers_data[i][j][0] = 0
+
+        sellers_data = []
+
+        for i in range(subsession.session.total_rounds):
+            temp_1 = []
+            for j in range(subsession.session.num_induc_val_steps + 1):
+                if j < subsession.session.num_induc_val_steps:
+                    temp_1.append(seller_type1_data[i][j])
+                    temp_1.append(seller_type2_data[i][j])
+                else:
+                    temp_1.append([0, seller_type2_data[i][j - 1][1] + (
+                    (seller_type2_data[i][j - 1][1] - seller_type1_data[i][j - 1][1]))])
+            sellers_data.append(temp_1)
+
+        for i in range(subsession.session.total_rounds):
+            for j in range(2 * subsession.session.num_induc_val_steps + 1):
+                if j > 0:
+                    sellers_data[i][j][0] += sellers_data[i][j - 1][0]
+
+        temp_2 = str(copy.deepcopy(sellers_data))
+        for i in range(subsession.session.total_rounds):
+            for j in range(2 * subsession.session.num_induc_val_steps + 1):
+                if j > 0:
+                    sellers_data[i][j][0] = ast.literal_eval(temp_2)[i][j - 1][0]
+                else:
+                    sellers_data[i][j][0] = 0
+
+        for i in range(subsession.session.total_rounds):
+            sellers_data[i].append([0, 0])
+            sellers_data[i].sort(key=lambda x: x[1])
+            sellers_data[i][2 * subsession.session.num_induc_val_steps + 1][1] = 1000
+            buyers_data[i].append([0, 1000])
+            buyers_data[i].sort(key=lambda x: x[1], reverse=True)
+            buyers_data[i][2 * subsession.session.num_induc_val_steps + 1][1] = 0
+
+        diff_y_axis = []
+        max_y_axis = []
+        for i in range(subsession.session.total_rounds):
+            diff_y_axis.append(sellers_data[i][1][1])
+            max_y_axis.append(buyers_data[i][1][1] + diff_y_axis[i])
+    else:
+        for p in subsession.get_players():
+            if p.is_buyer:
+                num_buyers += 1
             else:
-                buyers_data[i][j][0] = 0
+                num_sellers += 1
 
-    sellers_data = []
+        buyer_data = [[[num_buyers * int(subsession.session.buyer_presets[j][i][1]),
+                              subsession.session.buyer_presets[j][i][0]] for i in
+                             range(subsession.session.num_induc_val_steps)] for j in
+                            range(subsession.session.total_rounds)]
+        seller_data = [[[num_sellers * int(subsession.session.seller_presets[j][i][1]),
+                               subsession.session.seller_presets[j][i][0]] for i in
+                              range(subsession.session.num_induc_val_steps)] for j in
+                             range(subsession.session.total_rounds)]
 
-    for i in range(subsession.session.config['num_rounds']):
-        temp_1 = []
-        for j in range(Constants.num_units+1):
-            if j < Constants.num_units:
-                temp_1.append(seller_type1_data[i][j])
-                temp_1.append(seller_type2_data[i][j])
-            else:
-                temp_1.append([0,seller_type2_data[i][j-1][1]+((seller_type2_data[i][j-1][1]-seller_type1_data[i][j-1][1]))])
-        sellers_data.append(temp_1)
+        buyers_data = []
 
-    for i in range(subsession.session.config['num_rounds']):
-        for j in range(2*Constants.num_units + 1):
-            if j > 0:
-                sellers_data[i][j][0] += sellers_data[i][j-1][0]
+        for i in range(subsession.session.total_rounds):
+            temp_1 = []
+            for j in range(subsession.session.num_induc_val_steps + 1):
+                if j < subsession.session.num_induc_val_steps:
+                    temp_1.append(buyer_data[i][j])
+                else:
+                    temp_1.append([0, buyer_data[i][j - 1][1] - (
+                    (buyer_data[i][j - 2][1] - buyer_data[i][j - 1][1]))])
+            buyers_data.append(temp_1)
 
-    temp_2=str(copy.deepcopy(sellers_data))
-    for i in range(subsession.session.config['num_rounds']):
-        for j in range(2*Constants.num_units+1):
-            if j > 0:
-                sellers_data[i][j][0] = ast.literal_eval(temp_2)[i][j-1][0]
-            else:
-                sellers_data[i][j][0] = 0
+        for i in range(subsession.session.total_rounds):
+            for j in range(subsession.session.num_induc_val_steps + 1):
+                if j > 0:
+                    buyers_data[i][j][0] += buyers_data[i][j - 1][0]
 
-    for i in range(subsession.session.config['num_rounds']):
-        sellers_data[i].append([0,0])
-        sellers_data[i].sort(key=lambda x: x[1])
-        sellers_data[i][2*Constants.num_units+1][1]=1000
-        buyers_data[i].append([0, 1000])
-        buyers_data[i].sort(key=lambda x: x[1], reverse=True)
-        buyers_data[i][2 * Constants.num_units + 1][1] = 0
+        temp_2 = str(copy.deepcopy(buyers_data))
+        for i in range(subsession.session.total_rounds):
+            for j in range(subsession.session.num_induc_val_steps + 1):
+                if j > 0:
+                    buyers_data[i][j][0] = ast.literal_eval(temp_2)[i][j - 1][0]
+                else:
+                    buyers_data[i][j][0] = 0
 
-    diff_y_axis = []
-    max_y_axis = []
-    for i in range(subsession.session.config['num_rounds']):
-        diff_y_axis.append(sellers_data[i][1][1])
-        max_y_axis.append(buyers_data[i][1][1]+diff_y_axis[i])
+        sellers_data = []
+
+        for i in range(subsession.session.total_rounds):
+            temp_1 = []
+            for j in range(subsession.session.num_induc_val_steps + 1):
+                if j < subsession.session.num_induc_val_steps:
+                    temp_1.append(seller_data[i][j])
+                else:
+                    temp_1.append([0, seller_data[i][j - 1][1] + (
+                    (seller_data[i][j - 1][1] - seller_data[i][j - 2][1]))])
+            sellers_data.append(temp_1)
+
+        for i in range(subsession.session.total_rounds):
+            for j in range(subsession.session.num_induc_val_steps + 1):
+                if j > 0:
+                    sellers_data[i][j][0] += sellers_data[i][j - 1][0]
+
+        temp_2 = str(copy.deepcopy(sellers_data))
+        for i in range(subsession.session.total_rounds):
+            for j in range(subsession.session.num_induc_val_steps + 1):
+                if j > 0:
+                    sellers_data[i][j][0] = ast.literal_eval(temp_2)[i][j - 1][0]
+                else:
+                    sellers_data[i][j][0] = 0
+
+        for i in range(subsession.session.total_rounds):
+            sellers_data[i].append([0, 0])
+            sellers_data[i].sort(key=lambda x: x[1])
+            sellers_data[i][subsession.session.num_induc_val_steps + 1][1] = 1000
+            buyers_data[i].append([0, 1000])
+            buyers_data[i].sort(key=lambda x: x[1], reverse=True)
+            buyers_data[i][subsession.session.num_induc_val_steps + 1][1] = 0
 
     return dict(
-        payoffs=payoffs,
         buyers_data=buyers_data,
         sellers_data=sellers_data,
-        max_y_axis=max_y_axis,
-        diff_y_axis=diff_y_axis,
+        total_rounds=subsession.session.total_rounds,
     )
 
 
@@ -130,30 +216,67 @@ def creating_session(subsession: Subsession):
     if subsession.round_number == 1: # Assigning values to session-level variables, i.e., variables which take on values once and these values are assigned at the beginning of the experiment
         session = subsession.session
 
-        session.starting_price = random.randint(Constants.min_induced_price, Constants.min_induced_price + 10) # Randomly generates the the lowest induced value for the seller which is within 10 ECUs of 'min_induced_price'
-        session.ending_price = session.starting_price + Constants.eq_units_per_player*8 - 2 # Given the variable above and the 'eq_units_per_player' variable, this sets the maximum induced value for the buyer which ensures, theoretically, that the vertical intersection between the supply and demand curves takes place at an aggregate quantity such that at this equilibrium level, everyone trades 'eq_units_per_player'
+        session.num_induc_val_steps = int(subsession.session.config['num_induc_val_steps']) # The number of steps of induced values for each type of buyers/sellers
+        session.quant_at_indc_val = int(subsession.session.config['quant_at_indc_val']) # Quantity endowed at each induced value step.
+        session.min_induc_val = float(subsession.session.config['min_induc_val']) # The lower threshold for induced values.
+        session.num_types = int(subsession.session.config['num_types']) # The number of types of buyers/sellers. Either '1' or '2' types are currently supported.
+        session.eq_indc_val_step = int(subsession.session.config['eq_indc_val_step']) # The number of steps of induced values for each type of buyers/sellers for which it is, in theory, optimal for them to carry out trade.
+        session.step_diff_per_type = float(subsession.session.config['step_diff_per_type']) # The amount of difference between two consecutive steps of induced values for each type of buyers/sellers.
+        session.step_up_aft_ev_round = int(subsession.session.config['step_up_aft_ev_round']) # The number of rounds after which induced values are shifted up.
+        session.step_up_by = float(subsession.session.config['step_up_by']) # The amount by which induced value at each step will shift up when the shift takes place.
+
+        session.starting_price = random.randint(session.min_induc_val, session.min_induc_val + 10) # Randomly generates the the lowest induced value for the seller which is within 10 ECUs of 'session.min_induc_val'
+
+        # This sets the maximum induced value for buyers which ensures, theoretically, that the vertical intersection between the supply and demand curves takes place at an aggregate quantity such that at this equilibrium level, everyone trades 'session.eq_indc_val_step'
+        if session.num_types == 2:
+            session.ending_price = session.starting_price + 1*(session.num_types*session.step_diff_per_type*session.eq_indc_val_step) - 2
+        else:
+            session.ending_price = session.starting_price + 2*(session.num_types*session.step_diff_per_type*session.eq_indc_val_step) - 2
 
         session.total_rounds = int(subsession.session.config['num_rounds']) # To make total number of rounds/trading periods configurable by the teacher, these are picked up from session configs
         session.timeout_seconds = int(subsession.session.config['timeout_seconds']) # The amount of time per trading period is also configurable
 
         # The 'presets_template' is used to generate a nested list (iterated over, first, the number of 'steps' of induced values, and second, over the number of rounds/trading periods in the experiment). This list will first be populated by induced values and endowed quantities at each induced value, and later, it will be populated by user data, as the experiment progresses
-        # The entries in each index of each indiviudal list are as follows: 0.induced value (assinged later), 1.quantity endowed (by default, it is decreasing over the number of 'steps'), 2.quantity sold/purchased, 3.quantity available, 4.order type (will be populated by either 'limit' or 'market'), 5.price, 6.unit profit, 7.total profit
-        session.presets_template = [[[0, int(Constants.num_units)-i, 0, int(Constants.num_units)-i, 'NA' , 0, 0, 0] for i in range(Constants.num_units)] for j in range(session.total_rounds)]
+        # The entries in each index of each indiviudal list are as follows: 0.induced value (assinged later), 1.quantity endowed, 2.quantity sold/purchased, 3.quantity available, 4.order type (will be populated by either 'limit' or 'market'), 5.price, 6.unit profit, 7.total profit
+        # The 'if' statement below checks for whether a fixed quantity is to be endowed at each step of induced values or not.
+        if session.quant_at_indc_val == 0:
+            session.presets_template = [[[0, session.num_induc_val_steps-i, 0, session.num_induc_val_steps-i, 'NA' , 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
+        else:
+            session.presets_template = [[[0, session.quant_at_indc_val, 0, session.quant_at_indc_val, 'NA' , 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
 
-        # There are two types each of sellers and buyers. Each buyer/seller is assigned to one of these types. The difference between these types is that at each 'step', type 2 sellers' induced value is 2 ECUs higher than type 1 sellers and type 2 buyers' induced value is 2 ECUs lower than type 1 buyers (This distinction between types doesn't disturb the predicted equilibrium quantity)
-        session.seller_type1_presets = copy.deepcopy(session.presets_template)
-        session.seller_type2_presets = copy.deepcopy(session.presets_template)
-        session.buyer_type1_presets = copy.deepcopy(session.presets_template)
-        session.buyer_type2_presets = copy.deepcopy(session.presets_template)
+        # If there are two types each of sellers and buyers, then each buyer/seller is assigned to one of these types. The difference between these types is that at each 'step', type 2 sellers' induced value is 'session.step_diff_per_type/2' ECUs higher than type 1 sellers and type 2 buyers' induced value is 'session.step_diff_per_type/2' ECUs lower than type 1 buyers (This distinction between types doesn't disturb the predicted equilibrium quantity)
+        if session.num_types == 2:
+            session.seller_type1_presets = copy.deepcopy(session.presets_template)
+            session.seller_type2_presets = copy.deepcopy(session.presets_template)
+            session.buyer_type1_presets = copy.deepcopy(session.presets_template)
+            session.buyer_type2_presets = copy.deepcopy(session.presets_template)
 
-        # For sellers, in a given round, each step of induced values is 4 ECUs higher than the previous step (implying increasing marginal costs). In every subsequent round, the induced values at each step are bumped up by 6 ECUs. Also, induced values for type 2 sellers are 2 ECUs higher than those of type 1 sellers at each step in every round
-        # For buyers, in a given round, each step of induced values is 4 ECUs lower than the previous step (implying diminishing marginal utility). In every subsequent round, the induced values at each step are bumped up by 6 ECUs. Also, induced values for type 2 buyers are 2 ECUs lower than those of type 1 buyers at each step in every round
-        for i in range (session.total_rounds):
-            for j in range(Constants.num_units):
-                session.seller_type1_presets[i][j][0] = session.starting_price + 6*i + 4*j
-                session.seller_type2_presets[i][j][0] = session.starting_price + 6*i + 4*j + 2
-                session.buyer_type1_presets[i][j][0] = session.ending_price + 6*i - 4*j
-                session.buyer_type2_presets[i][j][0] = session.ending_price + 6*i - 4*j - 2
+            x = 1
+            y = 0
+            for i in range(session.total_rounds):
+                if x % (session.step_up_aft_ev_round+1) == 0: # This block of code is responsible for shifting up the induced values after every given number of rounds
+                    x = 1
+                    y += 1
+                for j in range(session.num_induc_val_steps):
+                    session.seller_type1_presets[i][j][0] = session.starting_price + (session.step_up_by * y) + (session.step_diff_per_type * j)
+                    session.seller_type2_presets[i][j][0] = session.starting_price + (session.step_up_by * y) + (session.step_diff_per_type * j) + (session.step_diff_per_type/2)
+                    session.buyer_type1_presets[i][j][0] = session.ending_price + (session.step_up_by * y) - (session.step_diff_per_type * j)
+                    session.buyer_type2_presets[i][j][0] = session.ending_price + (session.step_up_by * y) - (session.step_diff_per_type * j) - (session.step_diff_per_type/2)
+                x += 1
+        else: # If there is only one type each of sellers and buyers then the following block executes
+            session.seller_presets = copy.deepcopy(session.presets_template)
+            session.buyer_presets = copy.deepcopy(session.presets_template)
+
+            x = 1
+            y = 0
+            for i in range(session.total_rounds):
+                if x % (session.step_up_aft_ev_round+1) == 0:
+                    x = 1
+                    y += 1
+                for j in range(session.num_induc_val_steps):
+                    session.seller_presets[i][j][0] = session.starting_price + (session.step_up_by * y) + (session.step_diff_per_type * j)
+                    session.buyer_presets[i][j][0] = session.ending_price + (session.step_up_by * y) - (session.step_diff_per_type * j)
+                x += 1
 
         # The following block of code assigns values to variables at the participant level (instead of player level) to ensure that the beginning-of-round values for these variables don't change across rounds or sub-sessions
         for player in subsession.get_players():
@@ -161,22 +284,33 @@ def creating_session(subsession: Subsession):
             participant.id_in_group = player.id_in_group
 
             participant.is_buyer = participant.id_in_group % 2 != 0 # Ensures equal distribution of even-numbered participants into buyers and sellers
-            if participant.is_buyer:
-                participant.id_by_role = int(participant.id_in_group // 2) + 1 # 'id_by_role' variable is used to equally distribute buyers into each of two types and sellers into each of two types
-                if participant.id_by_role % 2 != 0:
-                    participant.type = 1
-                    participant.inducement = str(copy.deepcopy(session.buyer_type1_presets))
+
+            if session.num_types == 2:
+                if participant.is_buyer:
+                    participant.id_by_role = int(participant.id_in_group // 2) + 1 # 'id_by_role' variable is used to equally distribute buyers into each of two types and sellers into each of two types
+                    if participant.id_by_role % 2 != 0:
+                        participant.type = 1
+                        participant.inducement = str(copy.deepcopy(session.buyer_type1_presets))
+                    else:
+                        participant.type = 2
+                        participant.inducement = str(copy.deepcopy(session.buyer_type2_presets))
                 else:
-                    participant.type = 2
-                    participant.inducement = str(copy.deepcopy(session.buyer_type2_presets))
+                    participant.id_by_role = int(participant.id_in_group / 2)
+                    if participant.id_by_role % 2 != 0:
+                        participant.type = 1
+                        participant.inducement = str(copy.deepcopy(session.seller_type1_presets))
+                    else:
+                        participant.type = 2
+                        participant.inducement = str(copy.deepcopy(session.seller_type2_presets))
             else:
-                participant.id_by_role = int(participant.id_in_group / 2)
-                if participant.id_by_role % 2 != 0:
+                if participant.is_buyer:
+                    participant.id_by_role = int(participant.id_in_group // 2) + 1
                     participant.type = 1
-                    participant.inducement = str(copy.deepcopy(session.seller_type1_presets))
+                    participant.inducement = str(copy.deepcopy(session.buyer_presets))
                 else:
-                    participant.type = 2
-                    participant.inducement = str(copy.deepcopy(session.seller_type2_presets))
+                    participant.id_by_role = int(participant.id_in_group / 2)
+                    participant.type = 1
+                    participant.inducement = str(copy.deepcopy(session.seller_presets))
 
     # I couldn't figure how to reference session level variables in the 'live_method' below, that's why, at the beginning of each round, I am using group level variables to pick these up
     Group.total_rounds = subsession.session.total_rounds # The total number of trading periods in a session
