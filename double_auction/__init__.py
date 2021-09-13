@@ -352,7 +352,7 @@ class Player(BasePlayer):
     current_quant = models.IntegerField(initial=0) # Records the quantity offered for purchase/sale at the current/standing offer
     order_type = models.StringField() # Records whether it is a 'limit' or a 'market' order
     session_payoff = models.FloatField() # The aggregate payoff/earnings for the player summed over all rounds/trading periods
-
+    payoff_new = models.FloatField(initial=0) # The period earnings for the player (for some reason the built-in payoff variable was storing the amount rounded to the nearest integer value as float(payoff) did not return floating point numbers)
 
 
 
@@ -489,7 +489,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                             buyer_inducement[buyer.round_number - 1][i][5] = float(price) # The price at which trade took place
                             buyer_inducement[buyer.round_number - 1][i][6] = buyer_inducement[buyer.round_number - 1][i][0] - float(price) # Unit profit is simply induced value at the step minus the price paid
                             buyer_inducement[buyer.round_number - 1][i][7] = buyer_inducement[buyer.round_number - 1][i][7] + buyer_inducement[buyer.round_number - 1][i][6] # Total profit is simply the existing total profit at this step (if there have been any prior trades) plus the unit profit as an additional unit was bought at this step (If there weren't any prior trades at this step, then it's just the unit profit)
-                            buyer.payoff += buyer_inducement[buyer.round_number - 1][i][0] - float(price) # Existing buyer payoff for the current round is augmented by the profit obtained from buying the current unit
+                            buyer.payoff_new += buyer_inducement[buyer.round_number - 1][i][0] - float(price) # Existing buyer payoff for the current round is augmented by the profit obtained from buying the current unit
                             buyer.session_payoff += buyer_inducement[buyer.round_number - 1][i][0] - float(price) # The aggregate payoff from trade in all previous as well as the current round is being augmented here
                             break
                         else: # If unit(s) have been previously bought at the ith step of induced values at a different price, then we need to bifurcate the data for the ith step of induced values as due to different prices for different units, profits will be different
@@ -504,7 +504,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                                                                              ])
                             buyer_inducement[buyer.round_number - 1][i][1] = buyer_inducement[buyer.round_number - 1][i][2] # After bifurcation, the quantity endowed is set equal to the quantity bought for the earlier trade which took at a different price for ith step of induced values
                             buyer_inducement[buyer.round_number - 1][i][3] = 0 # Similarly, the quantity available is set equal to the zero for the earlier trade which took at a different price for ith step of induced values
-                            buyer.payoff += buyer_inducement[buyer.round_number - 1][i][0] - float(price) # Existing buyer payoff for the current round is augmented by the profit obtained from buying the current unit
+                            buyer.payoff_new += buyer_inducement[buyer.round_number - 1][i][0] - float(price) # Existing buyer payoff for the current round is augmented by the profit obtained from buying the current unit
                             buyer.session_payoff += buyer_inducement[buyer.round_number - 1][i][0] - float(price) # The aggregate payoff from trade in all previous as well as the current round is being augmented here
                             break
 
@@ -521,7 +521,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                             seller_inducement[seller.round_number - 1][i][5] = float(price) # The price at which trade took place
                             seller_inducement[seller.round_number - 1][i][6] = float(price) - seller_inducement[seller.round_number - 1][i][0] # Unit profit is simply price received minus the induced value at the step
                             seller_inducement[seller.round_number - 1][i][7] = seller_inducement[seller.round_number - 1][i][7] + seller_inducement[seller.round_number - 1][i][6] # Total profit is simply the existing total profit at this step (if there have been any prior trades) plus the unit profit as an additional unit was sold at this step (If there weren't any prior trades at this step, then it's just the unit profit)
-                            seller.payoff += float(price) - seller_inducement[seller.round_number - 1][i][0] # Existing seller payoff for the current round is augmented by the profit obtained from selling the current unit
+                            seller.payoff_new += float(price) - seller_inducement[seller.round_number - 1][i][0] # Existing seller payoff for the current round is augmented by the profit obtained from selling the current unit
                             seller.session_payoff += float(price) - seller_inducement[seller.round_number - 1][i][0] # The aggregate payoff from trade in all previous as well as the current round is being augmented here
                             break
                         else: # If unit(s) have been previously sold at the ith step of induced values at a different price, then we need to bifurcate the data for the ith step of induced values as due to different prices for different units, profits will be different
@@ -536,7 +536,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                                                                              ])
                             seller_inducement[seller.round_number - 1][i][1] = seller_inducement[seller.round_number - 1][i][2] # After bifurcation, the quantity endowed is set equal to the quantity sold for the earlier trade which took at a different price for ith step of induced values
                             seller_inducement[seller.round_number - 1][i][3] = 0 # Similarly, the quantity available is set equal to the zero for the earlier trade which took at a different price for ith step of induced values
-                            seller.payoff += float(price) - seller_inducement[seller.round_number - 1][i][0] # Existing seller payoff for the current round is augmented by the profit obtained from selling the current unit
+                            seller.payoff_new += float(price) - seller_inducement[seller.round_number - 1][i][0] # Existing seller payoff for the current round is augmented by the profit obtained from selling the current unit
                             seller.session_payoff += float(price) - seller_inducement[seller.round_number - 1][i][0] # The aggregate payoff from trade in all previous as well as the current round is being augmented here
                             break
 
@@ -629,7 +629,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                 inducement=ast.literal_eval(p.inducement),
                 news=news,
                 event=event,
-                payoff=p.payoff,
+                payoff=p.payoff_new,
                 session_payoff=p.session_payoff,
             )
             for p in players
@@ -696,7 +696,7 @@ class MyWaitPage(Page):
     @staticmethod
     def js_vars(player: Player):
         return dict(
-            is_buyer=player.is_buyer, cur_round=player.round_number, total_rounds=Group.total_rounds, period_payoff=float(player.payoff),
+            is_buyer=player.is_buyer, cur_round=player.round_number, total_rounds=Group.total_rounds, period_payoff=player.payoff_new,
             session_payoff=player.session_payoff, wait_timeout=Group.wait_timeout_seconds
         )
 
@@ -714,7 +714,7 @@ class Results(Page):
     def js_vars(player: Player):
         return dict(
             is_buyer=player.is_buyer, total_rounds=Group.total_rounds,
-            inducement=ast.literal_eval(player.inducement), period_payoffs=[float(p.payoff) for p in player.in_all_rounds()],
+            inducement=ast.literal_eval(player.inducement), period_payoffs=[p.payoff_new for p in player.in_all_rounds()],
             session_payoffs=[p.session_payoff for p in player.in_all_rounds()],
         )
 

@@ -423,9 +423,9 @@
                 $("#btn-lim-order").attr('disabled', false);
             }
 
-            if (is_buyer && upd_asks !==[] && my_quant2.value !== ""){
+            if (is_buyer && upd_asks !==[] && parseInt(my_quant2.value) > 0){
                 $("#btn-mkt-order").attr('disabled', false);
-            } else if (!is_buyer && upd_bids !== [] && my_quant2.value !== ""){
+            } else if (!is_buyer && upd_bids !== [] && parseInt(my_quant2.value) > 0){
                 $("#btn-mkt-order").attr('disabled', false);
             }
 
@@ -720,7 +720,7 @@
 
 
         function update_messages(event, news){
-            if (event){
+            if (event.length != 0){
                 let {id_sender, time_event, offer_amt, offer_qt, order_type} = event;
                 if (id_sender == my_id){
                     if (order_type == 'limit'){
@@ -732,7 +732,7 @@
                     }
                 }
             }
-            if (news) {
+            if (news.length != 0) {
                 for (var i = 0; i < news.length; i++){
                     if (news[i][0] == my_id) {
                         if (news[i][5] == 'limit'){
@@ -825,17 +825,17 @@
 
             $("#btn-mkt-order").attr('disabled', true);
 
-            if (is_buyer && asks.length !== 0 && my_quant2.value !== ""){
-                $("#btn-mkt-order").attr('disabled', false);
-            } else if (!is_buyer && bids.length !== 0 && my_quant2.value !== ""){
-                $("#btn-mkt-order").attr('disabled', false);
-            }
-
             upd_bids = JSON.parse(JSON.stringify(bids));
             upd_asks = JSON.parse(JSON.stringify(asks));
             upd_ind = JSON.parse(JSON.stringify(inducement));
 
             multi_unit_trading_check();
+
+            if (is_buyer && asks.length !== 0 && parseInt(my_quant2.value) > 0){
+                $("#btn-mkt-order").attr('disabled', false);
+            } else if (!is_buyer && bids.length !== 0 && parseInt(my_quant2.value) > 0){
+                $("#btn-mkt-order").attr('disabled', false);
+            }
 
             if (rel_price_imp == "all"){
                 if (is_buyer && upd_bids.length!=0) {
@@ -856,8 +856,14 @@
 
             update_messages(event, news);
 
-            if (news) {
-                populate_sum_table(this_round,inducement);
+            if (news.length != 0) {
+                for (var i = 0; i < news.length; i++){
+                    if (news[i][0] == my_id || news[i][1] == my_id) {
+                        hist_round = this_round;
+                        reset_hist_nav_buttons();
+                        populate_sum_table(this_round,inducement);
+                    }
+                }
                 update_quant1(inducement);
                 update_quant2(inducement);
                 update_offer_table(current_offer,current_quant);

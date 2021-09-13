@@ -74,6 +74,9 @@
             if(sec.toString().length == 1) {
                 sec = "0" + sec;
             }
+            if (sec < 0) {
+                sec = "00";
+            }
             document.getElementById('timeout_timer').innerHTML = min + ":" + sec
         }
     </script>
