@@ -51,6 +51,8 @@
 </style>
 
 <script>
+    let offers = {{offers | safe}};
+    let transactions = {{transactions | safe}};
     let buyers_data = {{buyers_data | safe}};
     let sellers_data = {{sellers_data | safe}};
     let total_rounds = {{total_rounds | safe}};
@@ -62,7 +64,13 @@
     let eq_q = 0;
     let eq_p_l = 0;
     let eq_p_h = 0;
+    let bids = [];
+    let asks = [];
+    let buys = [];
+    let sells = [];
 
+    console.log("offers: ", offers);
+    console.log("transactions: ", transactions);
     console.log("buyers data: ", buyers_data);
     console.log("sellers data: ", sellers_data);
 
@@ -70,7 +78,41 @@
         reset_hist_nav_buttons();
         set_yaxis_limits(hist_round);
         set_eq(hist_round);
+        prepare_offers_data(hist_round);
+        prepare_transaction_data(hist_round);
         draw_graph(hist_round);
+    }
+
+
+    function prepare_offers_data(hist_round){
+        bids=[];
+        asks=[];
+        if (offers != []){
+            for (var i = 0; i < offers.length; i++){
+                if (offers[i][0]==hist_round && offers[i][5]=="bid"){
+                    bids.push([offers[i][2],offers[i][6]]);
+                }
+                if (offers[i][0]==hist_round && offers[i][5]=="ask"){
+                    asks.push([offers[i][2],offers[i][6]]);
+                }
+            }
+        }
+    }
+
+
+    function prepare_transaction_data(hist_round){
+        buys=[];
+        sells=[];
+        if (transactions != []){
+            for (var i = 0; i < transactions.length; i++){
+                if (transactions[i][0]==hist_round && transactions[i][9]=="buy"){
+                    buys.push([transactions[i][2],transactions[i][7]]);
+                }
+                if (transactions[i][0]==hist_round && transactions[i][9]=="sell"){
+                    sells.push([transactions[i][2],transactions[i][7]]);
+                }
+            }
+        }
     }
 
 
@@ -105,6 +147,8 @@
         hist_text.innerHTML = "Period " + hist_round + " Data";
         set_yaxis_limits(hist_round);
         set_eq(hist_round);
+        prepare_offers_data(hist_round);
+        prepare_transaction_data(hist_round);
         draw_graph(hist_round);
         $("#btn-first").attr('disabled', true);
         $("#btn-prev").attr('disabled', true);
@@ -121,6 +165,8 @@
         hist_text.innerHTML = "Period " + hist_round + " Data";
         set_yaxis_limits(hist_round);
         set_eq(hist_round);
+        prepare_offers_data(hist_round);
+        prepare_transaction_data(hist_round);
         draw_graph(hist_round);
 
         if (hist_round == 1){
@@ -138,6 +184,8 @@
         hist_text.innerHTML = "Period " + hist_round + " Data";
         set_yaxis_limits(hist_round);
         set_eq(hist_round);
+        prepare_offers_data(hist_round);
+        prepare_transaction_data(hist_round);
         draw_graph(hist_round);
 
         if (hist_round == total_rounds){
@@ -152,6 +200,8 @@
         hist_text.innerHTML = "Period " + hist_round + " Data";
         set_yaxis_limits(hist_round);
         set_eq(hist_round);
+        prepare_offers_data(hist_round);
+        prepare_transaction_data(hist_round);
         draw_graph(hist_round);
         $("#btn-first").attr('disabled', false);
         $("#btn-prev").attr('disabled', false);
@@ -163,59 +213,122 @@
     function draw_graph(hist_round){
         description.innerHTML = "<p>" + "The predicted equilibrium quantity is " + eq_q + "." + "</p>" +
         "<p>" + "The predicted equilibrium price range is between ECU " + Number(eq_p_l).toFixed(2) + " and ECU " + Number(eq_p_h).toFixed(2) + "." + "</p>";
-
-        $('#Graph').highcharts({
-            chart: {
-                animation: false,
-            },
-            title: {
-                text: "Predicted Market Demand and Supply Curves",
-            },
-            legend: {
-                enabled: true,
-            },
-            credits: {
-                enabled: false
-            },
-            exporting: {
-                enabled: false
-            },
-            plotOptions: {
-                series: {
-                    pointStart:0,
-                    enableMouseTracking: false,
-                    marker: {
-                        enabled: false,
+        $(function() {
+            $('#Graph').highcharts({
+                chart: {
+                    animation: false,
+                },
+                title: {
+                    text: "Predicted Market Demand and Supply Curves",
+                },
+                legend: {
+                    enabled: true,
+                },
+                credits: {
+                    enabled: false
+                },
+                exporting: {
+                    enabled: false
+                },
+                plotOptions: {
+                    series: {
+                        pointStart:0,
+                        enableMouseTracking: false,
+                        stickyTracking: false,
+                        states: {
+                            inactive: {
+                                opacity: 1,
+                            },
+                        },
+                        marker: {
+                            enabled: false,
+                        },
+                    }
+                },
+                xAxis: {
+                    title: {
+                        text: 'Quantity',
                     },
-                }
-            },
-            xAxis: {
-                title: {
-                    text: 'Quantity',
+                    min:0,
+                    tickInterval: 1,
                 },
-                min:0,
-                tickInterval: 1,
-            },
-            yAxis: {
-                title: {
-                    text: 'Price (in ECUs)',
+                yAxis: {
+                    title: {
+                        text: 'Price (in ECUs)',
+                    },
+                    min:min_y,
+                    max: max_y,
+                    tickInterval: 1,
                 },
-                min:min_y,
-                max: max_y,
-                tickInterval: 1,
-            },
-            series: [{
-                name: "Demand Curve",
-                data: buyers_data[hist_round-1],
-                color:'#0275d8',
-                step:true,
-            },
-            {
-                name: "Supply Curve",
-                data: sellers_data[hist_round-1],
-                color:'#d9534f',
-                step:true,
-            }],
+                series: [{
+                    name: "Demand Curve",
+                    data: buyers_data[hist_round-1],
+                    color:'#0275d8',
+                    step:true,
+                },
+                {
+                    name: "Supply Curve",
+                    data: sellers_data[hist_round-1],
+                    color:'#d9534f',
+                    step:true,
+                },
+                {
+                    name: 'Bid',
+                    data: bids,
+                    color: '#89F22A',
+                    marker: {
+                        enabled:true,
+                        symbol: 'triangle',
+                        radius: 3,
+                        lineWidth: 1,
+                        lineColor: '#89F22A',
+                    },
+                    enableMouseTracking: false,
+                    type: 'scatter',
+                },
+                {
+                    name: 'Ask',
+                    data: asks,
+                    color: '#F2E52A',
+                    marker: {
+                        enabled:true,
+                        symbol: 'triangle-down',
+                        radius: 3,
+                        lineWidth: 1,
+                        lineColor: '#F2E52A',
+                    },
+                    enableMouseTracking: false,
+                    type: 'scatter',
+                },
+                {
+                    name: 'Buy',
+                    data: buys,
+                    color: '#29B310',
+                    marker: {
+                        enabled:true,
+                        symbol: 'triangle',
+                        radius: 3,
+                        lineWidth: 1,
+                        lineColor: '#29B310',
+                    },
+                    enableMouseTracking: false,
+                    type: 'scatter',
+                },
+                {
+                    name: 'Sell',
+                    data: sells,
+                    color: '#F2A62A',
+                    marker: {
+                        enabled:true,
+                        symbol: 'triangle-down',
+                        radius: 3,
+                        lineWidth: 1,
+                        lineColor: '#F2A62A',
+                    },
+                    enableMouseTracking: false,
+                    type: 'scatter',
+                }],
+            });
         });
     }
 </script>

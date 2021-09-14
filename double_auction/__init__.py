@@ -207,6 +207,9 @@ def vars_for_admin_report(subsession):
         buyers_data=buyers_data,
         sellers_data=sellers_data,
         total_rounds=subsession.session.total_rounds,
+        offers=Group.offers,
+        transactions=Group.transactions,
+
     )
 
 
@@ -318,6 +321,8 @@ def creating_session(subsession: Subsession):
     Group.wait_timeout_seconds = int(subsession.session.config['wait_timeout_seconds']) # Specifies the number the seconds for which the subjects get a break between two consecutive trading periods
     Group.multiple_unit_trading = subsession.session.config['multiple_unit_trading'] # Set at 'False' (without quotes) in SESSION CONFIGS to only allow the subjects to trade a single unit at a time 'True' (or anything other than 'False' in this case) will allow the subjects to trade multiple units at a time
     Group.relative_price_imp = subsession.session.config['relative_price_imp'] # Set at "all" in SESSION CONFIGS to enforce price improvement relative to the current best offer. "self" (or anything other than "all" in this case) will enforce price improvement relative own best offer
+    Group.offers = str(copy.deepcopy([]))
+    Group.transactions = str(copy.deepcopy([]))
 
     # The following block of code ensures that at the beginning of each round/sub-session, the session-wide participant variables are copied for each player (Some of these are later updated and re-populated with data from all previous rounds)
     for player in subsession.get_players():
@@ -339,6 +344,8 @@ class Group(BaseGroup):
     wait_timeout_seconds = models.IntegerField()
     multiple_unit_trading = models.BooleanField()
     relative_price_imp = models.StringField()
+    offers = models.LongStringField()
+    transactions = models.LongStringField()
 
 
 
@@ -356,18 +363,9 @@ class Player(BasePlayer):
 
 
 
-class Transaction(ExtraModel):
-    group = models.Link(Group)
-    buyer = models.Link(Player)
-    seller = models.Link(Player)
-    price = models.FloatField() # Records the price at which a trade takes place
-    seconds = models.IntegerField(doc="Timestamp (seconds since beginning of trading)") # Will be used later to plot transactions for admin_report
-
-
-
 
 def find_match_new(buyers, sellers, offer_type, bids_new, asks_new): # This method is used to determine the buyer and the seller for each trade
-    if offer_type == 'bid': # 'bid' here is a place-holder for limit/market order from a buyer
+    if offer_type == 'bid' or offer_type == 'buy': # 'bid' here is a place-holder for limit/market order from a buyer
         for buyer in buyers:
             for seller in sellers:
                 if seller.current_offer == min(asks_new):
@@ -388,9 +386,13 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
     sellers = [p for p in players if not p.is_buyer] # The list of players assigned the role of a seller
     news = [] # Used to populate the 'Messages' div on the Trading page after a trade has taken place (messages pertaining to market orders are also reflected here)
     event = None # Used to populate the 'Messages' div on the Trading page after a player submits a limit order (i.e. a bid or an ask)
+    agg_units_traded = 0
 
     bids_new = [] # Stores the list of all outstanding bid prices
     asks_new = [] # Stores the list of all outstanding ask prices
+
+    offers = ast.literal_eval(Group.offers)
+    transactions = ast.literal_eval(Group.transactions)
 
     # Data will be sent here (and some other data will be sent back) whenever a player submits a limit order (i.e. clicks on the 'Bid'/'Ask' button) or a market order (i.e. clicks on the'Buy'/'Sell' button)
     if data:
@@ -441,6 +443,24 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
         event = dict(id_sender=player.id_in_group, time_event=time_event,
                      offer_amt=player.current_offer, offer_qt=player.current_quant,order_type=type_of_order)
 
+        for p in sellers:
+            for i in range(len(ast.literal_eval(p.inducement)[p.round_number - 1])):
+                agg_units_traded += ast.literal_eval(p.inducement)[p.round_number - 1][i][2]
+
+        if player.order_type == 'limit':
+            offers.append([
+                player.round_number,
+                str(time_event),
+                agg_units_traded + 1,
+                player.id_in_group,
+                "buyer" if player.is_buyer==True else "seller",
+                "bid" if player.is_buyer==True else "ask",
+                player.current_offer,
+                player.current_quant,
+            ])
+
+        Group.offers = str(copy.deepcopy(offers))
+
         total_units = 0 # This variable records the total number of units traded per each completed trade for a given seller/buyer pair
 
         for i in range(player.current_quant): # Potential trades are checked for at a unit by unit level as one of the buyer/seller pair could be different for a multi-unit offer
@@ -457,15 +477,15 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                                                    asks_new=asks_new)
             else:
                 if player.is_buyer and len(asks_new) > 0: # In the case of market order from a buyer, check if there are any outstanding asks and then use the find_match_new method to complete the trade at the minimum outstanding ask price
-                    match_new = find_match_new(buyers=[player], sellers=sellers, offer_type='bid', bids_new=bids_new,
+                    match_new = find_match_new(buyers=[player], sellers=sellers, offer_type='buy', bids_new=bids_new,
                                                asks_new=asks_new)
                 elif not player.is_buyer and len(bids_new) > 0: # In the case of market order from a seller, check if there are any outstanding bids and then use the find_match_new method to complete the trade at the maximum outstanding bid
-                    match_new = find_match_new(buyers=buyers, sellers=[player], offer_type='ask', bids_new=bids_new,
+                    match_new = find_match_new(buyers=buyers, sellers=[player], offer_type='sell', bids_new=bids_new,
                                                asks_new=asks_new)
 
             if match_new != []: # If a match is found, that is, if a trade occurs, then the following block is executed
                 [buyer, seller, buyer_order_type, seller_order_type, last_offer_type] = match_new # Receives the data sent by the match_new method after a match has been found
-                if last_offer_type == 'bid': # If trade occurred after a buyer submitted a bid that was higher than the lowest ask price in the queue, then the trade price is that ask price. If trade occurred after a buyer submitted a market order then the trade price is the lowest ask price in the queue
+                if last_offer_type == 'bid' or last_offer_type == 'buy': # If trade occurred after a buyer submitted a bid that was higher than the lowest ask price in the queue, then the trade price is that ask price. If trade occurred after a buyer submitted a market order then the trade price is the lowest ask price in the queue
                     price = seller.current_offer
                     asks_new.remove(seller.current_offer) # As the trade has occurred, so the ask price needs to be deleted from the list of outstanding ask prices
                     if type_of_order == 'limit':
@@ -549,15 +569,6 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                 tx_min, tx_sec = divmod(tx_sec, 60)
                 time_tx = str(int(tx_min)) + ":" + str(int(tx_sec)).zfill(2)
 
-                # To be used later for the admin report
-                Transaction.create(
-                    group=group,
-                    buyer=buyer,
-                    seller=seller,
-                    price=price,
-                    seconds=time.time() - group.start_timestamp,
-                )
-
                 total_units += 1 # Total units traded counter incremented by 1 after a trade has taken place
 
                 # The following two blocks of code subtract 1 from buyer's as well as seller's outstanding orders after a unit has been traded
@@ -574,6 +585,18 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                 # Once all units for a buyer/seller pair have been traded (indicated by either the buyer or the seller having outstanding orders for zero units), news is sent out relaying trade details which are then displayed in the 'Messages' tab of the buyer and the seller
                 if buyer.current_quant == 0 or seller.current_quant == 0:
                     if news == []:
+                        transactions.append([
+                            buyer.round_number,
+                            str(time_tx),
+                            agg_units_traded + 1,
+                            buyer.id_in_group,
+                            buyer_order_type,
+                            seller.id_in_group,
+                            seller_order_type,
+                            price,
+                            total_units,
+                            last_offer_type
+                        ])
                         news.append([
                             buyer.id_in_group,
                             seller.id_in_group,
@@ -585,6 +608,18 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                             last_offer_type
                         ])
                     else:
+                        transactions.append([
+                            buyer.round_number,
+                            str(time_tx),
+                            agg_units_traded + 1 + news[0][3],
+                            buyer.id_in_group,
+                            buyer_order_type,
+                            seller.id_in_group,
+                            seller_order_type,
+                            price,
+                            total_units- news[0][3],
+                            last_offer_type
+                        ])
                         news.append([
                             buyer.id_in_group,
                             seller.id_in_group,
@@ -595,6 +630,8 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                             seller_order_type,
                             last_offer_type
                         ])
+
+                    Group.transactions = str(copy.deepcopy(transactions))
 
                 # The following two blocks of code indicate the fulfilment of buyer's and/or seller's current/outstanding order
                 if buyer.current_quant == 0:
@@ -609,9 +646,6 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
             if (player.is_buyer and len(asks_new)==0) or (not player.is_buyer and len(bids_new)==0):
                 break
 
-
-        highcharts_series = [[tx.seconds, tx.price] for tx in Transaction.filter(group=group)] # To be used later for admin report
-
         bids_new.sort()
         asks_new.sort()
 
@@ -623,7 +657,6 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
             p.id_in_group: dict(
                 bids=bids_freq,
                 asks=asks_freq,
-                highcharts_series=highcharts_series,
                 current_offer=p.current_offer,
                 current_quant=p.current_quant,
                 inducement=ast.literal_eval(p.inducement),
@@ -631,6 +664,8 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                 event=event,
                 payoff=p.payoff_new,
                 session_payoff=p.session_payoff,
+                offers=offers,
+                transactions=transactions,
             )
             for p in players
         }

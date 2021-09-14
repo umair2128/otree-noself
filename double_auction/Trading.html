@@ -737,7 +737,7 @@
                     if (news[i][0] == my_id) {
                         if (news[i][5] == 'limit'){
                             if (news[i][7] == 'bid'){
-                                event_messages.innerHTML += news[i][4] + ": Purchased " + news[i][3]  + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                                event_messages.innerHTML += news[i][4] + ": Bid resulted in the trade of " + news[i][3]  + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             } else {
                                 event_messages.innerHTML += news[i][4] + ": Bid accepted for " +  news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             }
@@ -747,7 +747,7 @@
                     } else if (news[i][1] == my_id) {
                         if (news[i][6] == 'limit'){
                             if (news[i][7] == 'ask'){
-                                event_messages.innerHTML += news[i][4] + ": Sold " + news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                                event_messages.innerHTML += news[i][4] + ": Ask resulted in the trade of " + news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             } else {
                                 event_messages.innerHTML += news[i][4] + ": Ask accepted for " + news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             }
@@ -821,7 +821,10 @@
 
 
         function liveRecv(data) {
-            let {bids, asks, highcharts_series, current_offer, current_quant, inducement, news, event, payoff, session_payoff} = data;
+            let {bids, asks, current_offer, current_quant, inducement, news, event, payoff, session_payoff, offers, transactions} = data;
+
+            console.log('OFFERS: ', offers);
+            console.log('TRANSACTIONS: ', transactions);
 
             $("#btn-mkt-order").attr('disabled', true);
 
