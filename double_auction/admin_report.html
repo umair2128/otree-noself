@@ -213,6 +213,36 @@
     function draw_graph(hist_round){
         description.innerHTML = "<p>" + "The predicted equilibrium quantity is " + eq_q + "." + "</p>" +
         "<p>" + "The predicted equilibrium price range is between ECU " + Number(eq_p_l).toFixed(2) + " and ECU " + Number(eq_p_h).toFixed(2) + "." + "</p>";
+
+        // Define a custom symbol path
+        Highcharts.SVGRenderer.prototype.symbols.cross = function (x, y, w, h) {
+            return ['M', x, y, 'L', x + w, y + h, 'M', x + w, y, 'L', x, y + h, 'z'];
+        };
+        if (Highcharts.VMLRenderer) {
+            Highcharts.VMLRenderer.prototype.symbols.cross = Highcharts.SVGRenderer.prototype.symbols.cross;
+        }
+
+        Highcharts.SVGRenderer.prototype.symbols.plus = function (x, y, w, h) {
+            return ['M', x, y + h / 2, 'L', x + w, y + h / 2, 'M', x + w / 2, y, 'L', x + w / 2, y + h, 'z'];
+        };
+        if (Highcharts.VMLRenderer) {
+            Highcharts.VMLRenderer.prototype.symbols.plus = Highcharts.SVGRenderer.prototype.symbols.plus;
+        }
+
+        Highcharts.SVGRenderer.prototype.symbols.up = function (x, y, w, h) {
+            return ['M', x, y + h, 'L', x + w/2, y, 'M', x + w/2, y, 'L', x + w, y+h,'z'];
+        };
+        if (Highcharts.VMLRenderer) {
+            Highcharts.VMLRenderer.prototype.symbols.up = Highcharts.SVGRenderer.prototype.symbols.up;
+        }
+
+        Highcharts.SVGRenderer.prototype.symbols.down = function (x, y, w, h) {
+            return ['M', x, y, 'L', x + w/2, y+h, 'M', x + w/2, y+h, 'L', x + w, y,'z'];
+        };
+        if (Highcharts.VMLRenderer) {
+            Highcharts.VMLRenderer.prototype.symbols.down = Highcharts.SVGRenderer.prototype.symbols.down;
+        }
+
         $(function() {
             $('#Graph').highcharts({
                 chart: {
@@ -263,25 +293,25 @@
                 series: [{
                     name: "Demand Curve",
                     data: buyers_data[hist_round-1],
-                    color:'#0275d8',
+                    color:'#172F3A',
                     step:true,
                 },
                 {
                     name: "Supply Curve",
                     data: sellers_data[hist_round-1],
-                    color:'#d9534f',
+                    color:'#C81010',
                     step:true,
                 },
                 {
                     name: 'Bid',
                     data: bids,
-                    color: '#89F22A',
+                    color: '#1C9506',
                     marker: {
                         enabled:true,
-                        symbol: 'triangle',
+                        symbol: "up",
                         radius: 4,
-                        lineWidth: 0.35,
-                        lineColor: '#000000',
+                        lineWidth: 2,
+                        lineColor: '#1C9506',
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
@@ -289,13 +319,13 @@
                 {
                     name: 'Ask',
                     data: asks,
-                    color: '#F2E52A',
+                    color: '#DC9314',
                     marker: {
                         enabled:true,
-                        symbol: 'triangle-down',
+                        symbol: "down",
                         radius: 4,
-                        lineWidth: 0.35,
-                        lineColor: '#000000',
+                        lineWidth: 2,
+                        lineColor: '#DC9314',
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
@@ -303,13 +333,13 @@
                 {
                     name: 'Buy',
                     data: buys,
-                    color: '#29B310',
+                    color: '#269AD1',
                     marker: {
                         enabled:true,
-                        symbol: 'triangle',
+                        symbol: "plus",
                         radius: 4,
-                        lineWidth: 0.35,
-                        lineColor: '#000000',
+                        lineWidth: 2,
+                        lineColor: '#269AD1',
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
@@ -317,13 +347,13 @@
                 {
                     name: 'Sell',
                     data: sells,
-                    color: '#F2A62A',
+                    color: '#9E31D8',
                     marker: {
                         enabled:true,
-                        symbol: 'triangle-down',
+                        symbol: "cross",
                         radius: 4,
-                        lineWidth: 0.35,
-                        lineColor: '#000000',
+                        lineWidth: 2,
+                        lineColor: '#9E31D8',
                     },
                     enableMouseTracking: false,
                     type: 'scatter',

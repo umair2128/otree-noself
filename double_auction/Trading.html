@@ -42,9 +42,6 @@
             <b>Completed Trades</b><br>
             <marquee id="comp_trades_container" behavior="scroll" direction="left"><div id="comp_trades" onMouseOver="document.getElementById('comp_trades_container').stop();" onMouseOut="document.getElementById('comp_trades_container').start();"></div></marquee>
         </div>
-        <div class="row" style="border: 1px solid grey;">
-            <span id="symbol_description"></span>
-        </div>
     </div>
 
     <div class="container">
@@ -54,16 +51,16 @@
                 <div class="row">
                     <table id="bid_ask_table_head" class="table table-sm table-borderless" style="height:5px;width:70%"><thead></thead></table>
                 </div>
-                <div class="row" style="height:120px; overflow-y:scroll;">
-                    <div class="col-1" style="vertical-align:middle;text-align:center;justify-content:center;align-items:center;">
+                <div class="row" style="height:115px; overflow-y:scroll;">
+                    <div class="col-1" style="vertical-align:middle;text-align:center;justify-content:center;align-items:center;position:relative;">
                         <p>A<br>S<br>K<br>S</p>
                     </div>
                     <div class="col-2">
-                        <table id="ask_table" class="table table-sm table-borderless" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><tbody></tbody></table>
+                        <table id="ask_table" class="table table-sm table-borderless" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;position:absolute;bottom:0;margin-bottom:0px;"><tbody></tbody></table>
                     </div>
                 </div>
-                <br>
-                <div class="row" style="height:120px; overflow-y:scroll;">
+                <hr>
+                <div class="row" style="height:115px; overflow-y:scroll;">
                     <div class="col-1" style="vertical-align:middle;text-align:center;justify-content:center;align-items:center;">
                         <p>B<br>I<br>D<br>S</p>
                     </div>
@@ -113,9 +110,6 @@
                     <table id="sum_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
                 </div>
             </div>
-        </div>
-        <div class="row" style="border: 1px solid grey;">
-            <span id="offer_description"></span>
         </div>
     </div>
 
@@ -245,7 +239,6 @@
         let my_quant1 = document.getElementById('my_quant1');
         let my_quant2 = document.getElementById('my_quant2');
         let comp_trades = document.getElementById('comp_trades');
-        let offer_desc = document.getElementById('offer_description');
 
         let outstanding_offer = 0;
         let outstanding_quant = 0;
@@ -438,8 +431,6 @@
 
             recall_dom_elements();
 
-            update_offer_desc();
-
             pop_comp_trades_ticker(ticker_data,this_round);
 
             if (upd_bids !== [] || upd_asks !== []){
@@ -560,11 +551,6 @@
             document.getElementById('basic_info').innerHTML = "This market is trading widgets. You are assigned the role of a " + "<b>" +
                 ((is_buyer) ? ("buyer") : ("seller")) + "</b>" + "."
 
-            document.getElementById('symbol_description').innerHTML = "<small>" + "A " + "<tiny>" + "&#128994;" + "</tiny>" +
-                " bullet for " + "<b>" + "Completed Trades" + "</b>" + " indicates the successful trades in which you were the " +
-                ((is_buyer) ? ("buyer.") : ("seller.")) +
-                " All other completed trades are indicated by the " + "<tiny>" + "&#9899;" + "</tiny>" + " bullet." + "</small>"
-
             populate_info_table();
             populate_actions_div();
         }
@@ -657,7 +643,7 @@
                     txt_row_ask += "<tr>";
                     txt_row_ask += "<td style='margin:0;padding:0;width:35px;text-align:center;vertical-align:middle;font-size:75%;'>" + "<exp>" + Number(upd_asks[i][0]).toFixed(2) + "</exp>" + "</td>";
                     txt_row_ask += "<td style='margin:0;padding:0;width:40px;text-align:right;vertical-align:middle;font-size:75%;'>" + upd_asks[i][1] + "</td>";
-                    txt_row_ask += "<td style='margin:0;padding:0;width:30px;text-align:right;vertical-align:middle;font-size:75%;'>" + ((!is_buyer && upd_asks[i][0] == outstanding_offer) ? ("<tiny>" + "&#128994;" + "</tiny>" + outstanding_quant) : ("&#8192;")) + "</td>";
+                    txt_row_ask += "<td style='margin:0;padding:0;width:30px;text-align:right;vertical-align:middle;font-size:75%;'>" + ((!is_buyer && upd_asks[i][0] == outstanding_offer) ? ("<tiny>" + "&#128994;" + "</tiny>" + ((upd_asks[i][1] == outstanding_quant) ? ("") : (outstanding_quant))) : ("&#8192;")) + "</td>";
                     txt_row_ask += "</tr>";
                 }
                 $('#ask_table tbody').append(txt_row_ask);
@@ -672,7 +658,7 @@
                     txt_row_bid += "<tr>";
                     txt_row_bid += "<td style='margin:0;padding:0;width:35px;text-align:center;vertical-align:middle;font-size:75%;'>" + "<exp>" + Number(upd_bids[i][0]).toFixed(2) + "</exp>" + "</td>";
                     txt_row_bid += "<td style='margin:0;padding:0;width:40px;text-align:right;vertical-align:middle;font-size:75%;'>" + upd_bids[i][1] + "</td>";
-                    txt_row_bid += "<td style='margin:0;padding:0;width:30px;text-align:right;vertical-align:middle;font-size:75%;'>" + ((is_buyer && upd_bids[i][0] == outstanding_offer) ? ("<tiny>" + "&#128994;" + "</tiny>" + outstanding_quant) : ("&#8192;")) + "</td>";
+                    txt_row_bid += "<td style='margin:0;padding:0;width:30px;text-align:right;vertical-align:middle;font-size:75%;'>" + ((is_buyer && upd_bids[i][0] == outstanding_offer) ? ("<tiny>" + "&#128994;" + "</tiny>" + ((upd_bids[i][1] == outstanding_quant) ? ("") : (outstanding_quant))) : ("&#8192;")) + "</td>";
                     txt_row_bid += "</tr>";
                 }
                 $('#bid_table tbody').append(txt_row_bid);
@@ -744,20 +730,6 @@
             txt_header += "</tr>"
             $('#offer_table thead').append(txt_header);
         }
-
-        function update_offer_desc(){
-            if (outstanding_offer > 0){
-                document.getElementById('offer_description').innerHTML = "<small>" + "<tiny>" + "&#128994;" + "</tiny>" + outstanding_quant +
-                    " next to " + "<b>" + "Qty" + "</b>" + " in the " + ((is_buyer) ? ("Bids ") : ("Asks ")) + "<b>" + "Queue" + "</b>" +
-                    " indicates that you have an outstanding " + ((is_buyer) ? ("bid ") : ("ask ")) + "for " + outstanding_quant +
-                    ((outstanding_quant > 1) ? (" units ") : (" unit ")) + " at the corresponding price of "
-                    + Number(outstanding_offer).toFixed(2) + "." + "</small>";
-            } else {
-                document.getElementById('offer_description').innerHTML = "<small>"+ "You have no outstanding " +
-                    ((is_buyer) ? ("bids ") : ("asks ")) + "at this moment." + "</small>";
-            }
-        }
-
 
         function update_offer_table(offer,quant){
             if (offer > 0 && quant > 0){
@@ -881,7 +853,7 @@
             if (transactions.length != 0){
                 for (var i = 0; i < transactions.length; i++){
                     if (transactions[i][0]==this_round){
-                        comp_trades.innerHTML += "&#8192;" + "&#8192;" + "&#8192;" + ((transactions[i][3] == my_id || transactions[i][5] == my_id) ? ("<tiny>" + "&#128994;" + "</tiny>") : ("<tiny>" + "&#9899;" + "</tiny>")) + " " + transactions[i][8] + ((transactions[i][8] > 1) ? (" units @ ") : (" unit @ ")) + Number(transactions[i][7]).toFixed(2) + "&#8192;" + "&#8192;" + "&#8192;"
+                        comp_trades.innerHTML += "&#8192;" + "&#8192;" + ((transactions[i][3] == my_id || transactions[i][5] == my_id) ? ("<tiny>" + "&#128994;" + "</tiny>") : ("")) + " " + transactions[i][8] + ((transactions[i][8] > 1) ? (" units @ ") : (" unit @ ")) + Number(transactions[i][7]).toFixed(2) + "&#8192;" + "&#8192;"
                     }
                 }
             } else {
@@ -958,8 +930,6 @@
                 outstanding_offer = current_offer;
                 outstanding_quant = current_quant;
             }
-
-            update_offer_desc();
 
             populate_bid_ask_table(bids, asks);
             populate_best_bid_ask_table(bids, asks);
