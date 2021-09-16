@@ -38,6 +38,13 @@
                 </table>
             </div>
         </div>
+        <div class="row" style="border: 1px solid grey;">
+            <b>Completed Trades</b><br>
+            <marquee id="comp_trades_container" behavior="scroll" direction="left"><div id="comp_trades" onMouseOver="document.getElementById('comp_trades_container').stop();" onMouseOut="document.getElementById('comp_trades_container').start();"></div></marquee>
+        </div>
+        <div class="row" style="border: 1px solid grey;">
+            <span id="symbol_description"></span>
+        </div>
     </div>
 
     <div class="container">
@@ -45,7 +52,7 @@
             <div class="col-2" style="border: 1px solid grey;"><!-- Queues column -->
                 <p><b>Queues</b></p>
                 <div class="row">
-                    <table id="bid_ask_table_head" class="table table-sm table-borderless" style="table-layout:fixed;height:5px;"><thead></thead></table>
+                    <table id="bid_ask_table_head" class="table table-sm table-borderless" style="height:5px;width:70%"><thead></thead></table>
                 </div>
                 <div class="row" style="height:120px; overflow-y:scroll;">
                     <div class="col-1" style="vertical-align:middle;text-align:center;justify-content:center;align-items:center;">
@@ -106,6 +113,9 @@
                     <table id="sum_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
                 </div>
             </div>
+        </div>
+        <div class="row" style="border: 1px solid grey;">
+            <span id="offer_description"></span>
         </div>
     </div>
 
@@ -172,6 +182,10 @@
           text-align: center;
         }
 
+        tiny {
+            font-size: x-small;
+        }
+
         exp:hover {
             z-index: 1;
             width: auto;
@@ -220,6 +234,7 @@
 
         let upd_bids = [];
         let upd_asks = [];
+        let ticker_data = [];
 
         let period_earnings = 0;
         let session_earnings = js_vars.session_payoff;
@@ -229,6 +244,11 @@
         let my_offer = document.getElementById('my_offer');
         let my_quant1 = document.getElementById('my_quant1');
         let my_quant2 = document.getElementById('my_quant2');
+        let comp_trades = document.getElementById('comp_trades');
+        let offer_desc = document.getElementById('offer_description');
+
+        let outstanding_offer = 0;
+        let outstanding_quant = 0;
 
         let error_1 = document.getElementById('error_1');
         let error_2 = document.getElementById('error_2');
@@ -298,6 +318,8 @@
                     }, 3500);
                 } else {
                     limitOrder();
+                    outstanding_offer = my_offer.value;
+                    outstanding_quant = my_quant1.value;
                     update_offer_table(my_offer.value,my_quant1.value);
                     my_quant1.value = "";
                     my_offer.value = "";
@@ -321,6 +343,8 @@
                     }, 3500);
                 } else {
                     limitOrder();
+                    outstanding_offer = my_offer.value;
+                    outstanding_quant = my_quant1.value;
                     update_offer_table(my_offer.value,my_quant1.value);
                     my_quant1.value = "";
                     my_offer.value = "";
@@ -370,6 +394,9 @@
             sessionStorage.setItem("cur_round", JSON.stringify(this_round));
             sessionStorage.setItem("period_earnings", JSON.stringify(period_earnings));
             sessionStorage.setItem("session_earnings", JSON.stringify(session_earnings));
+            sessionStorage.setItem("ticker_data", JSON.stringify(ticker_data));
+            sessionStorage.setItem("outstanding_offer", JSON.stringify(outstanding_offer));
+            sessionStorage.setItem("outstanding_quant", JSON.stringify(outstanding_quant));
         }
 
 
@@ -392,6 +419,9 @@
                 sessionStorage.removeItem("quant_c");
                 sessionStorage.removeItem("period_earnings");
                 sessionStorage.removeItem("session_earnings");
+                sessionStorage.removeItem("ticker_data");
+                sessionStorage.removeItem("outstanding_offer");
+                sessionStorage.removeItem("outstanding_quant");
             }
         }
 
@@ -407,6 +437,10 @@
             $("#btn-mkt-order").attr('disabled', true);
 
             recall_dom_elements();
+
+            update_offer_desc();
+
+            pop_comp_trades_ticker(ticker_data,this_round);
 
             if (upd_bids !== [] || upd_asks !== []){
                 populate_bid_ask_table(upd_bids, upd_asks);
@@ -523,8 +557,13 @@
 
 
         function show_info(){
-            document.getElementById('basic_info').innerHTML = "This market is trading widgets. You are assigned the role of a " +
-                ((is_buyer) ? ("buyer") : ("seller")) + "."
+            document.getElementById('basic_info').innerHTML = "This market is trading widgets. You are assigned the role of a " + "<b>" +
+                ((is_buyer) ? ("buyer") : ("seller")) + "</b>" + "."
+
+            document.getElementById('symbol_description').innerHTML = "<small>" + "A " + "<tiny>" + "&#128994;" + "</tiny>" +
+                " bullet for " + "<b>" + "Completed Trades" + "</b>" + " indicates the successful trades in which you were the " +
+                ((is_buyer) ? ("buyer.") : ("seller.")) +
+                " All other completed trades are indicated by the " + "<tiny>" + "&#9899;" + "</tiny>" + " bullet." + "</small>"
 
             populate_info_table();
             populate_actions_div();
@@ -567,6 +606,20 @@
             if (sessionStorage.getItem("session_earnings") !== null){
                 document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(JSON.parse(sessionStorage.getItem("session_earnings"))).toFixed(2);
             }
+
+            if (sessionStorage.getItem("ticker_data") !== null){
+                ticker_data = JSON.parse(sessionStorage.getItem("ticker_data"));
+            } else {
+                ticker_data = [];
+            }
+
+            if (sessionStorage.getItem("outstanding_offer") !== null){
+                outstanding_offer=Number(JSON.parse(sessionStorage.getItem("outstanding_offer"))).toFixed(2)
+            }
+
+            if (sessionStorage.getItem("outstanding_quant") !== null){
+                outstanding_quant=Number(JSON.parse(sessionStorage.getItem("outstanding_quant")))
+            }
         }
 
 
@@ -591,9 +644,9 @@
             $("#bid_ask_table_head tr").remove(); // in case redrawing table
             let txt_header = "";
             txt_header += "<tr>";
-            txt_header += "<th style='margin:0;padding:0;width:10px;text-align:center;'></th>"
-            txt_header += "<th style='margin:0;padding:0;width:4px;text-align:center;'>Price</th>"
-            txt_header += "<th style='margin:0;padding:0;width:30px;text-align:center;'>Qty</th>"
+            txt_header += "<th style='margin:0;padding:0;text-align:center;vertical-align:middle;'>" + "&#8192;" + "</th>"
+            txt_header += "<th style='margin:0;padding:0;text-align:right;vertical-align:middle;'>Price</th>"
+            txt_header += "<th style='margin:0;padding:0;text-align:right;vertical-align:middle;'>Qty</th>"
             txt_header += "</tr>"
             $('#bid_ask_table_head thead').append(txt_header);
 
@@ -602,9 +655,9 @@
                 let txt_row_ask = "";
                 for (var i = 0; i < upd_asks.length; i++){
                     txt_row_ask += "<tr>";
-                    txt_row_ask += "<td style='margin:0;padding:0;width:2px;text-align:center;font-size:75%;'>" + "</td>";
-                    txt_row_ask += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + "<exp>" + Number(upd_asks[i][0]).toFixed(2) + "</exp>" + "</td>";
-                    txt_row_ask += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + upd_asks[i][1] + "</td>";
+                    txt_row_ask += "<td style='margin:0;padding:0;width:35px;text-align:center;vertical-align:middle;font-size:75%;'>" + "<exp>" + Number(upd_asks[i][0]).toFixed(2) + "</exp>" + "</td>";
+                    txt_row_ask += "<td style='margin:0;padding:0;width:40px;text-align:right;vertical-align:middle;font-size:75%;'>" + upd_asks[i][1] + "</td>";
+                    txt_row_ask += "<td style='margin:0;padding:0;width:30px;text-align:right;vertical-align:middle;font-size:75%;'>" + ((!is_buyer && upd_asks[i][0] == outstanding_offer) ? ("<tiny>" + "&#128994;" + "</tiny>" + outstanding_quant) : ("&#8192;")) + "</td>";
                     txt_row_ask += "</tr>";
                 }
                 $('#ask_table tbody').append(txt_row_ask);
@@ -617,9 +670,9 @@
                 let txt_row_bid = "";
                 for (var i = 0; i < upd_bids.length; i++){
                     txt_row_bid += "<tr>";
-                    txt_row_bid += "<td style='margin:0;padding:0;width:2px;text-align:center;font-size:75%;'>" + "</td>";
-                    txt_row_bid += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + "<exp>" + Number(upd_bids[i][0]).toFixed(2) + "</exp>" + "</td>";
-                    txt_row_bid += "<td style='margin:0;padding:0;width:40px;text-align:center;font-size:75%;'>" + upd_bids[i][1] + "</td>";
+                    txt_row_bid += "<td style='margin:0;padding:0;width:35px;text-align:center;vertical-align:middle;font-size:75%;'>" + "<exp>" + Number(upd_bids[i][0]).toFixed(2) + "</exp>" + "</td>";
+                    txt_row_bid += "<td style='margin:0;padding:0;width:40px;text-align:right;vertical-align:middle;font-size:75%;'>" + upd_bids[i][1] + "</td>";
+                    txt_row_bid += "<td style='margin:0;padding:0;width:30px;text-align:right;vertical-align:middle;font-size:75%;'>" + ((is_buyer && upd_bids[i][0] == outstanding_offer) ? ("<tiny>" + "&#128994;" + "</tiny>" + outstanding_quant) : ("&#8192;")) + "</td>";
                     txt_row_bid += "</tr>";
                 }
                 $('#bid_table tbody').append(txt_row_bid);
@@ -692,6 +745,19 @@
             $('#offer_table thead').append(txt_header);
         }
 
+        function update_offer_desc(){
+            if (outstanding_offer > 0){
+                document.getElementById('offer_description').innerHTML = "<small>" + "<tiny>" + "&#128994;" + "</tiny>" + outstanding_quant +
+                    " next to " + "<b>" + "Qty" + "</b>" + " in the " + ((is_buyer) ? ("Bids ") : ("Asks ")) + "<b>" + "Queue" + "</b>" +
+                    " indicates that you have an outstanding " + ((is_buyer) ? ("bid ") : ("ask ")) + "for " + outstanding_quant +
+                    ((outstanding_quant > 1) ? (" units ") : (" unit ")) + " at the corresponding price of "
+                    + Number(outstanding_offer).toFixed(2) + "." + "</small>";
+            } else {
+                document.getElementById('offer_description').innerHTML = "<small>"+ "You have no outstanding " +
+                    ((is_buyer) ? ("bids ") : ("asks ")) + "at this moment." + "</small>";
+            }
+        }
+
 
         function update_offer_table(offer,quant){
             if (offer > 0 && quant > 0){
@@ -725,9 +791,9 @@
                 if (id_sender == my_id){
                     if (order_type == 'limit'){
                         if (is_buyer){
-                            event_messages.innerHTML += time_event + ": Submitted bid for " + offer_qt + " unit(s) at " + Number(offer_amt).toFixed(2) + "." + "<br>"
+                            event_messages.innerHTML += time_event + ": Submitted bid for " + offer_qt + ((offer_qt > 1) ? (" units at ") : (" unit at ")) + Number(offer_amt).toFixed(2) + "." + "<br>"
                         } else {
-                            event_messages.innerHTML += time_event + ": Submitted ask for " + offer_qt + " unit(s) at " + Number(offer_amt).toFixed(2) + "." + "<br>"
+                            event_messages.innerHTML += time_event + ": Submitted ask for " + offer_qt + ((offer_qt > 1) ? (" units at ") : (" unit at ")) + Number(offer_amt).toFixed(2) + "." + "<br>"
                         }
                     }
                 }
@@ -737,22 +803,22 @@
                     if (news[i][0] == my_id) {
                         if (news[i][5] == 'limit'){
                             if (news[i][7] == 'bid'){
-                                event_messages.innerHTML += news[i][4] + ": Bid resulted in the trade of " + news[i][3]  + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                                event_messages.innerHTML += news[i][4] + ": Bid resulted in the trade of " + news[i][3]  + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             } else {
-                                event_messages.innerHTML += news[i][4] + ": Bid accepted for " +  news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                                event_messages.innerHTML += news[i][4] + ": Bid accepted for " +  news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             }
                         } else {
-                            event_messages.innerHTML += news[i][4] + ": Purchased " + news[i][3]  + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                            event_messages.innerHTML += news[i][4] + ": Purchased " + news[i][3]  + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                         }
                     } else if (news[i][1] == my_id) {
                         if (news[i][6] == 'limit'){
                             if (news[i][7] == 'ask'){
-                                event_messages.innerHTML += news[i][4] + ": Ask resulted in the trade of " + news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                                event_messages.innerHTML += news[i][4] + ": Ask resulted in the trade of " + news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             } else {
-                                event_messages.innerHTML += news[i][4] + ": Ask accepted for " + news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                                event_messages.innerHTML += news[i][4] + ": Ask accepted for " + news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             }
                         } else {
-                            event_messages.innerHTML += news[i][4] + ": Sold " + news[i][3] + " unit(s) at " + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                            event_messages.innerHTML += news[i][4] + ": Sold " + news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                         }
                     }
                 }
@@ -809,6 +875,20 @@
             return max_quant2
         }
 
+        function pop_comp_trades_ticker(transactions,this_round){
+            comp_trades.innerHTML = "";
+
+            if (transactions.length != 0){
+                for (var i = 0; i < transactions.length; i++){
+                    if (transactions[i][0]==this_round){
+                        comp_trades.innerHTML += "&#8192;" + "&#8192;" + "&#8192;" + ((transactions[i][3] == my_id || transactions[i][5] == my_id) ? ("<tiny>" + "&#128994;" + "</tiny>") : ("<tiny>" + "&#9899;" + "</tiny>")) + " " + transactions[i][8] + ((transactions[i][8] > 1) ? (" units @ ") : (" unit @ ")) + Number(transactions[i][7]).toFixed(2) + "&#8192;" + "&#8192;" + "&#8192;"
+                    }
+                }
+            } else {
+                comp_trades.innerHTML = "****** &#8192; NO COMPLETED TRADES TO SHOW &#8192; ******"
+            }
+        }
+
 
         function get_min_md_arr(arr,idx){
             return Math.min.apply(null, arr.map(function (e) {return e[idx]}));
@@ -821,10 +901,12 @@
 
 
         function liveRecv(data) {
-            let {bids, asks, current_offer, current_quant, inducement, news, event, payoff, session_payoff, offers, transactions} = data;
+            let {bids, asks, current_offer, current_quant, inducement, news, event, payoff, session_payoff, offers, transactions, det_bids, det_asks, order_type} = data;
 
             console.log('OFFERS: ', offers);
             console.log('TRANSACTIONS: ', transactions);
+            console.log('DET BIDS: ', det_bids);
+            console.log('DET ASKS: ', det_asks);
 
             $("#btn-mkt-order").attr('disabled', true);
 
@@ -850,6 +932,35 @@
                 }
             }
 
+            let existing_offer_quant = 0;
+            let existing_offer_amt = 0;
+
+            if(is_buyer){
+                for (var i = 0; i < det_bids.length; i++){
+                    if (det_bids[i][0]==this_round && det_bids[i][1]==my_id){
+                        existing_offer_quant += 1;
+                        existing_offer_amt = det_bids[i][2];
+                    }
+                }
+            } else {
+                for (var i = 0; i < det_asks.length; i++){
+                    if (det_asks[i][0]==this_round && det_asks[i][1]==my_id){
+                        existing_offer_quant += 1;
+                        existing_offer_amt = det_asks[i][2];
+                    }
+                }
+            }
+
+            if (existing_offer_quant > 0){
+                outstanding_offer = existing_offer_amt;
+                outstanding_quant = existing_offer_quant;
+            } else {
+                outstanding_offer = current_offer;
+                outstanding_quant = current_quant;
+            }
+
+            update_offer_desc();
+
             populate_bid_ask_table(bids, asks);
             populate_best_bid_ask_table(bids, asks);
 
@@ -867,9 +978,11 @@
                         populate_sum_table(this_round,inducement);
                     }
                 }
+                ticker_data = transactions;
+                pop_comp_trades_ticker(ticker_data,this_round);
                 update_quant1(inducement);
                 update_quant2(inducement);
-                update_offer_table(current_offer,current_quant);
+                update_offer_table(outstanding_offer,outstanding_quant);
             }
 
         }

@@ -323,6 +323,10 @@ def creating_session(subsession: Subsession):
     Group.relative_price_imp = subsession.session.config['relative_price_imp'] # Set at "all" in SESSION CONFIGS to enforce price improvement relative to the current best offer. "self" (or anything other than "all" in this case) will enforce price improvement relative own best offer
     Group.offers = str(copy.deepcopy([]))
     Group.transactions = str(copy.deepcopy([]))
+    Group.bids = str(copy.deepcopy([]))
+    Group.asks = str(copy.deepcopy([]))
+    #Group.bids = str(copy.deepcopy([[] for i in range(subsession.session.total_rounds)]))
+    #Group.asks = str(copy.deepcopy([[] for i in range(subsession.session.total_rounds)]))
 
     # The following block of code ensures that at the beginning of each round/sub-session, the session-wide participant variables are copied for each player (Some of these are later updated and re-populated with data from all previous rounds)
     for player in subsession.get_players():
@@ -346,6 +350,8 @@ class Group(BaseGroup):
     relative_price_imp = models.StringField()
     offers = models.LongStringField()
     transactions = models.LongStringField()
+    bids = models.LongStringField()
+    asks = models.LongStringField()
 
 
 
@@ -368,12 +374,12 @@ def find_match_new(buyers, sellers, offer_type, bids_new, asks_new): # This meth
     if offer_type == 'bid' or offer_type == 'buy': # 'bid' here is a place-holder for limit/market order from a buyer
         for buyer in buyers:
             for seller in sellers:
-                if seller.current_offer == min(asks_new):
+                if seller.current_offer == min(asks_new, key=lambda x: x[2])[2]:
                     return [buyer, seller, buyer.order_type, seller.order_type, offer_type]
     else:
         for seller in sellers:
             for buyer in buyers:
-                if buyer.current_offer == max(bids_new):
+                if buyer.current_offer == max(bids_new, key=lambda x: x[2])[2]:
                     return [buyer, seller, buyer.order_type, seller.order_type, offer_type]
 
 
@@ -388,8 +394,8 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
     event = None # Used to populate the 'Messages' div on the Trading page after a player submits a limit order (i.e. a bid or an ask)
     agg_units_traded = 0
 
-    bids_new = [] # Stores the list of all outstanding bid prices
-    asks_new = [] # Stores the list of all outstanding ask prices
+    bids_new = ast.literal_eval(Group.bids) # Stores the list of all outstanding bid prices
+    asks_new = ast.literal_eval(Group.asks) # Stores the list of all outstanding ask prices
 
     offers = ast.literal_eval(Group.offers)
     transactions = ast.literal_eval(Group.transactions)
@@ -405,6 +411,23 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
         player.order_type = type_of_order
 
         if type_of_order == 'limit': # If a limit order is received then capture the information on the bid/ask price as well as the quantity demanded/offered at that price
+
+            bids_copy = []
+            asks_copy = []
+
+            if player.is_buyer:
+                if len(bids_new) != 0:
+                    for i in range(len(bids_new)):
+                        if bids_new[i][0]!=player.round_number or bids_new[i][1]!=player.id_in_group:
+                            bids_copy.append(bids_new[i])
+                    bids_new = copy.copy(bids_copy)
+            else:
+                if len(asks_new) != 0:
+                    for i in range(len(asks_new)):
+                        if asks_new[i][0]!=player.round_number or asks_new[i][1]!=player.id_in_group:
+                            asks_copy.append(asks_new[i])
+                    asks_new = copy.copy(asks_copy)
+
             try:
                 offer = float(data['limit_order'])
                 quant = int(data['quant'])
@@ -419,21 +442,29 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
 
         player.current_quant = quant
 
-        for p in buyers: # The following block of code basically appends the bid price submitted by the buyer to the outstanding bids list as many times as the quantity demanded at that price
-            if p.current_quant != 0:
-                for i in range(p.current_quant):
-                    if p.current_offer != 0: # Ensures that market orders are not reflected in outstanding bids list
-                        bids_new.append(p.current_offer)
+        if type_of_order == 'limit':
+            if player.is_buyer:
+                for i in range(player.current_quant):
+                    bids_new.append([player.round_number, player.id_in_group, player.current_offer])
+            else:
+                for i in range(player.current_quant):
+                    asks_new.append([player.round_number, player.id_in_group, player.current_offer])
 
-        bids_new.sort()
+        #for p in buyers: # The following block of code basically appends the bid price submitted by the buyer to the outstanding bids list as many times as the quantity demanded at that price
+            #if p.current_quant != 0:
+                #for i in range(p.current_quant):
+                    #if p.current_offer != 0: # Ensures that market orders are not reflected in outstanding bids list
+                        #bids_new.append(p.current_offer)
 
-        for p in sellers: # The following block of code basically appends the ask price submitted by the seller to the outstanding asks list as many times as the quantity offered for sale at that price
-            if p.current_quant != 0:
-                for i in range(p.current_quant):
-                    if p.current_offer != 0: # Ensures that market orders are not reflected in outstanding asks list
-                        asks_new.append(p.current_offer)
+        sorted(bids_new,key=lambda x:x[2])
 
-        asks_new.sort()
+        #for p in sellers: # The following block of code basically appends the ask price submitted by the seller to the outstanding asks list as many times as the quantity offered for sale at that price
+            #if p.current_quant != 0:
+                #for i in range(p.current_quant):
+                    #if p.current_offer != 0: # Ensures that market orders are not reflected in outstanding asks list
+                        #asks_new.append(p.current_offer)
+
+        sorted(asks_new,key=lambda x:x[2])
 
         #The following three variables are used to record the time on the countdown timer when a buyer/seller submits a limit order (i.e. bid/ask)
         event_sec = Group.timeout_seconds + group.start_timestamp - time.time()
@@ -468,11 +499,11 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
 
             if type_of_order == 'limit':
                 if player.is_buyer and len(asks_new) > 0: # A match could be found for a given bid if there are any outstanding asks
-                    if player.current_offer > min(asks_new): # Furthermore, trade can occur only if a given bid exceeds the minimum outstanding ask price
+                    if player.current_offer >= min(asks_new, key=lambda x: x[2])[2]: # Furthermore, trade can occur only if a given bid exceeds the minimum outstanding ask price
                         match_new = find_match_new(buyers=[player], sellers=sellers, offer_type='bid', bids_new=bids_new,
                                                    asks_new=asks_new)
                 elif not player.is_buyer and len(bids_new) > 0: # A match could be found for a given ask if there are any outstanding bids
-                    if player.current_offer < max(bids_new): # Furthermore, trade can occur only if a given ask price is below the maximum outstanding bid
+                    if player.current_offer <= max(bids_new, key=lambda x: x[2])[2]: # Furthermore, trade can occur only if a given ask price is below the maximum outstanding bid
                         match_new = find_match_new(buyers=buyers, sellers=[player], offer_type='ask', bids_new=bids_new,
                                                    asks_new=asks_new)
             else:
@@ -487,14 +518,27 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                 [buyer, seller, buyer_order_type, seller_order_type, last_offer_type] = match_new # Receives the data sent by the match_new method after a match has been found
                 if last_offer_type == 'bid' or last_offer_type == 'buy': # If trade occurred after a buyer submitted a bid that was higher than the lowest ask price in the queue, then the trade price is that ask price. If trade occurred after a buyer submitted a market order then the trade price is the lowest ask price in the queue
                     price = seller.current_offer
-                    asks_new.remove(seller.current_offer) # As the trade has occurred, so the ask price needs to be deleted from the list of outstanding ask prices
-                    if type_of_order == 'limit':
-                        bids_new.remove(buyer.current_offer) # In the case of a completed limit order, the bid price also needs to be deleted from the list of outstanding bids
+
+                    #asks_new.remove(seller.current_offer) # As the trade has occurred, so the ask price needs to be deleted from the list of outstanding ask prices
+                    #if type_of_order == 'limit':
+                        #bids_new.remove(buyer.current_offer) # In the case of a completed limit order, the bid price also needs to be deleted from the list of outstanding bids
+
                 else: # If trade occurred after a seller submitted an ask that was lower than the highest bid in the queue, then the trade price is that bid. If trade occurred after a seller submitted a market order then the trade price is the highest bid price in the queue
                     price = buyer.current_offer
-                    bids_new.remove(buyer.current_offer) # As the trade has occurred, so the bid price needs to be deleted from the list of outstanding bids
-                    if type_of_order == 'limit':
-                        asks_new.remove(seller.current_offer) # In the case of a completed limit order, the ask price also needs to be deleted from the list of outstanding asks
+
+                    #bids_new.remove(buyer.current_offer) # As the trade has occurred, so the bid price needs to be deleted from the list of outstanding bids
+                    #if type_of_order == 'limit':
+                        #asks_new.remove(seller.current_offer) # In the case of a completed limit order, the ask price also needs to be deleted from the list of outstanding asks
+
+                for i in range(len(asks_new)):
+                    if asks_new[i][0] == seller.round_number and asks_new[i][1] == seller.id_in_group:
+                        asks_new.pop(i)
+                        break
+
+                for i in range(len(bids_new)):
+                    if bids_new[i][0] == buyer.round_number and bids_new[i][1] == buyer.id_in_group:
+                        bids_new.pop(i)
+                        break
 
                 # The following two nested lists copy buyers and sellers data which is later updated to reflect completed trade(s)
                 buyer_inducement = ast.literal_eval(buyer.inducement)
@@ -642,16 +686,38 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                     seller.current_offer = 0
                     seller.order_type = ''
 
+            Group.bids = str(copy.deepcopy(bids_new))
+            Group.asks = str(copy.deepcopy(asks_new))
+
             # This caters to the case in which there is not enough quantity available to fulfill a buyer or a seller's outstanding order
             if (player.is_buyer and len(asks_new)==0) or (not player.is_buyer and len(bids_new)==0):
                 break
 
-        bids_new.sort()
-        asks_new.sort()
+            if player.current_quant==0:
+                break
+
+        #bids_new.sort()
+        #asks_new.sort()
+
+        sorted(bids_new, key=lambda x: x[2])
+        sorted(asks_new, key=lambda x: x[2])
+
+        bids_for_freq = []
+        asks_for_freq = []
+
+        if len(bids_new) != 0:
+            for i in range(len(bids_new)):
+                if bids_new[i][0]==player.round_number:
+                    bids_for_freq.append(bids_new[i][2])
+
+        if len(asks_new) != 0:
+            for i in range(len(asks_new)):
+                if asks_new[i][0] == player.round_number:
+                    asks_for_freq.append(asks_new[i][2])
 
         # The following two lists construct a frequency list for bids and asks, respectively which are then used to populate the bid/ask tables
-        bids_freq = sorted([[float(x), bids_new.count(x)] for x in set(bids_new)], key=lambda x: x[0], reverse=True)
-        asks_freq = sorted([[float(x), asks_new.count(x)] for x in set(asks_new)], key=lambda x: x[0], reverse=True)
+        bids_freq = sorted([[float(x), bids_for_freq.count(x)] for x in set(bids_for_freq)], key=lambda x: x[0], reverse=True)
+        asks_freq = sorted([[float(x), asks_for_freq.count(x)] for x in set(asks_for_freq)], key=lambda x: x[0], reverse=True)
 
         return {
             p.id_in_group: dict(
@@ -666,6 +732,9 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                 session_payoff=p.session_payoff,
                 offers=offers,
                 transactions=transactions,
+                det_bids=bids_new,
+                det_asks=asks_new,
+                order_type=player.order_type,
             )
             for p in players
         }
