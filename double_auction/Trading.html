@@ -300,8 +300,8 @@
 
 
         $("#btn-lim-order").on('click', function(e){
-            console.log("#btn-lim-order - my_offer.value: ", my_offer.value);
-            console.log("#btn-lim-order - offer_c: ", offer_c);
+            console.log("#btn-lim-order - my_offer.value: ", Number.parseFloat(my_offer.value));
+            console.log("#btn-lim-order - offer_c: ", Number.parseFloat(offer_c));
             if(is_buyer){
                 if (Number.parseFloat(my_offer.value) < Number.parseFloat(offer_c)){
                     my_offer.value = "";
@@ -747,7 +747,7 @@
         }
 
         function update_offer_table(offer,quant){
-            if (offer > 0 && quant > 0){
+            if (Number.parseFloat(offer) > 0 && Number.parseInt(quant) > 0){
                 create_offer_table();
                 let txt_row = "";
 
@@ -757,10 +757,10 @@
                 txt_row += "</tr>";
 
                 if (rel_price_imp != "all"){
-                    offer_c = Number(offer).toFixed(2);
+                    offer_c = Number.parseFloat(offer);
                     console.log("update_offer_table - offer_c: ", offer_c);
                 }
-                quant_c = quant;
+                quant_c = Number.parseInt(quant);
                 console.log("update_offer_table - quant_c: ", quant_c);
 
                 $('#offer_table tbody').append(txt_row);
@@ -928,9 +928,9 @@
 
             if (rel_price_imp == "all"){
                 if (is_buyer && upd_bids.length!=0) {
-                    offer_c = get_max_md_arr(upd_bids,0);
+                    offer_c = Number.parseFloat(get_max_md_arr(upd_bids,0));
                 } else if (!is_buyer && upd_asks.length!=0){
-                    offer_c = get_min_md_arr(upd_asks,0);
+                    offer_c = Number.parseFloat(get_min_md_arr(upd_asks,0));
                 } else {
                     offer_c = 0;
                 }

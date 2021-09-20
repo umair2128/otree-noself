@@ -1,7 +1,14 @@
-<!-- Bootstrap CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
-<!-- Bootstrap Font Icon CSS -->
+<!-- Bootstrap CSS-->
+<!--Bootstrap Font Icon CSS-->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"/>
+
 
 <!-- Linking Highcharts -->
 <script src="https://code.highcharts.com/highcharts.js"></script>
@@ -11,14 +18,22 @@
 <script src="https://code.highcharts.com/modules/boost.js"></script>
 
 <div class="container">
-    <div class="row" style="vertical-align:middle;align-items:left;">
+    <ul class="nav nav-tabs">
+        <li class="active"><a data-toggle="tab" href="#sub_info">Subject Info</a></li>
+        <li><a data-toggle="tab" href="#mkt_act">Market Activity</a></li>
+        <li><a data-toggle="tab" href="#mkt_hist">Market History</a></li>
+    </ul>
+
+    <br>
+
+    <div class="row" style="vertical-align:middle;align-items:center;justify-content: center;">
         <div class="col-1" style="border: none;">
             <button class="btn-sm btn-primary" type="button" id="btn-first"><i class="bi-chevron-double-left"></i></button>
         </div>
         <div class="col-1" style="border: none;">
             <button class="btn-sm btn-primary" type="button" id="btn-prev"><i class="bi-chevron-left"></i></button>
         </div>
-        <div class="col-7" style="border: none;text-align:center;">
+        <div class="col-5" style="border: none;text-align:center;">
             <span id="hist_text"></span>
         </div>
         <div class="col-1" style="border: none;">
@@ -29,13 +44,49 @@
         </div>
     </div>
 
-    <div class="row">
-        <div id="Graph" style="height: 400px"></div>
+    <div class="tab-content">
+        <div id="sub_info" class="tab-pane fade in active">
+            <div class="row">
+                <h4 style="text-align:center;vertical-align:middle">Subject Info Table</h4>
+            </div>
+            <div class="row" style="overflow-y:scroll;"><!-- Period summary row -->
+                    <table id="sub_info_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
+            </div>
+        </div>
+
+        <div id="mkt_act" class="tab-pane fade">
+            <div class="row">
+                <h4 style="text-align:center;vertical-align:middle">Summary Table</h4>
+            </div>
+
+            <div class="row" style="overflow-y:scroll;"><!-- Period summary row -->
+                    <table id="period_sum_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
+            </div>
+        </div>
+
+        <div id="mkt_hist" class="tab-pane fade">
+            <div class="row">
+                <h4 style="text-align:center;vertical-align:middle">Summary Graph</h4>
+            </div>
+
+            <div class="row">
+                    <div id="pred_eq_box" style="font-size:12px;width:20%;border:1px solid #A7A7A7;background-color:#F1F1F1;vertical-align:bottom;text-align:left;justify-content:right;align-items:right;margin-left:4%;"></div>
+            </div>
+
+            <div class="row">
+                <div id="Graph" style="height: 400px"></div>
+            </div>
+
+            <div class="row">
+                <span id="description"></span>
+            </div>
+        </div>
+
+
     </div>
 
-    <div class="row">
-        <span id="description"></span>
-    </div>
+
+
 </div>
 
 
@@ -45,8 +96,8 @@
     }
 
     .btn-sm.btn-primary[disabled] {
-        background-color: #8ac8ff;
-        border-color: #66b8ff;
+        background-color: #abc7db;
+        border-color: #9bb6c9;
     }
 </style>
 
@@ -80,6 +131,9 @@
         set_eq(hist_round);
         prepare_offers_data(hist_round);
         prepare_transaction_data(hist_round);
+        populate_sub_info_table(hist_round);
+        populate_period_sum_table(hist_round);
+        upd_pred_eq_box();
         draw_graph(hist_round);
     }
 
@@ -117,8 +171,40 @@
 
 
     function set_yaxis_limits(hist_round){
-        max_y = buyers_data[hist_round-1][1][1] + 5;
-        min_y = sellers_data[hist_round-1][1][1] - 5;
+        period_offers = [];
+        period_transactions = [];
+
+        if (offers != []){
+            for (var i = 0; i < offers.length; i++){
+                if (offers[i][0]==hist_round){
+                    period_offers.push(offers[i][6])
+                }
+            }
+        }
+
+        if (transactions != []){
+            for (var i = 0; i < transactions.length; i++){
+                if (transactions[i][0]==hist_round){
+                    period_transactions.push(transactions[i][7])
+                }
+            }
+        }
+
+        console.log(period_offers);
+        console.log(period_transactions);
+
+        max_offers = Math.max.apply(Math,period_offers);
+        min_offers = Math.min.apply(Math,period_offers);
+
+        max_transactions = Math.max.apply(Math,period_transactions);
+        min_transactions = Math.min.apply(Math,period_transactions);
+
+
+        max_y = Math.max(buyers_data[hist_round-1][1][1], max_offers, max_transactions) + 5;
+        min_y = Math.max(Math.min(sellers_data[hist_round-1][1][1], min_offers, min_transactions) - 5,0);
+
+        console.log(max_y);
+        console.log(min_y);
     }
 
 
@@ -133,7 +219,7 @@
 
 
     function reset_hist_nav_buttons(){
-        hist_text.innerHTML = "Period " + hist_round + " Data";
+        hist_text.innerHTML = "Period " + hist_round;
 
         $("#btn-first").attr('disabled', true);
         $("#btn-prev").attr('disabled', true);
@@ -144,12 +230,15 @@
 
     $("#btn-first").on('click', function(e){
         hist_round = 1;
-        hist_text.innerHTML = "Period " + hist_round + " Data";
+        hist_text.innerHTML = "Period " + hist_round;
         set_yaxis_limits(hist_round);
         set_eq(hist_round);
         prepare_offers_data(hist_round);
         prepare_transaction_data(hist_round);
         draw_graph(hist_round);
+        populate_sub_info_table(hist_round);
+        populate_period_sum_table(hist_round);
+        upd_pred_eq_box();
         $("#btn-first").attr('disabled', true);
         $("#btn-prev").attr('disabled', true);
         $("#btn-next").attr('disabled', false);
@@ -162,11 +251,14 @@
         $("#btn-last").attr('disabled', false);
 
         hist_round = hist_round - 1;
-        hist_text.innerHTML = "Period " + hist_round + " Data";
+        hist_text.innerHTML = "Period " + hist_round;
         set_yaxis_limits(hist_round);
         set_eq(hist_round);
         prepare_offers_data(hist_round);
         prepare_transaction_data(hist_round);
+        populate_sub_info_table(hist_round);
+        populate_period_sum_table(hist_round);
+        upd_pred_eq_box();
         draw_graph(hist_round);
 
         if (hist_round == 1){
@@ -181,11 +273,14 @@
         $("#btn-first").attr('disabled', false);
 
         hist_round = hist_round + 1;
-        hist_text.innerHTML = "Period " + hist_round + " Data";
+        hist_text.innerHTML = "Period " + hist_round;
         set_yaxis_limits(hist_round);
         set_eq(hist_round);
         prepare_offers_data(hist_round);
         prepare_transaction_data(hist_round);
+        populate_sub_info_table(hist_round);
+        populate_period_sum_table(hist_round);
+        upd_pred_eq_box();
         draw_graph(hist_round);
 
         if (hist_round == total_rounds){
@@ -197,17 +292,26 @@
 
     $("#btn-last").on('click', function(e){
         hist_round = total_rounds;
-        hist_text.innerHTML = "Period " + hist_round + " Data";
+        hist_text.innerHTML = "Period " + hist_round;
         set_yaxis_limits(hist_round);
         set_eq(hist_round);
         prepare_offers_data(hist_round);
         prepare_transaction_data(hist_round);
+        populate_sub_info_table(hist_round);
+        populate_period_sum_table(hist_round);
+        upd_pred_eq_box();
         draw_graph(hist_round);
         $("#btn-first").attr('disabled', false);
         $("#btn-prev").attr('disabled', false);
         $("#btn-next").attr('disabled', true);
         $("#btn-last").attr('disabled', true);
     });
+
+    function upd_pred_eq_box(){
+        pred_eq_box.innerHTML  = '<b>' + 'PREDICTED EQUILIBRIUM' + '</b>' + '<br>' +
+        '<b>' + 'Price Range: ' + '</b>' + Number(eq_p_l).toFixed(2) + "-" + Number(eq_p_h).toFixed(2) + '<br/>' +
+        '<b>' + 'Quantity: ' + '</b>' + eq_q;
+    }
 
 
     function draw_graph(hist_round){
@@ -249,7 +353,7 @@
                     animation: false,
                 },
                 title: {
-                    text: "Predicted Market Demand and Supply Curves",
+                    text: undefined,
                 },
                 legend: {
                     enabled: true,
@@ -295,12 +399,14 @@
                     data: buyers_data[hist_round-1],
                     color:'#172F3A',
                     step:true,
+                    zIndex: 1,
                 },
                 {
                     name: "Supply Curve",
                     data: sellers_data[hist_round-1],
                     color:'#C81010',
                     step:true,
+                    zIndex: 2,
                 },
                 {
                     name: 'Bid',
@@ -315,6 +421,7 @@
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
+                    zIndex: 3,
                 },
                 {
                     name: 'Ask',
@@ -329,6 +436,7 @@
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
+                    zIndex: 4,
                 },
                 {
                     name: 'Buy',
@@ -343,6 +451,7 @@
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
+                    zIndex: 5,
                 },
                 {
                     name: 'Sell',
@@ -357,8 +466,109 @@
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
+                    zIndex: 6,
                 }],
             });
         });
+    }
+
+    function populate_period_sum_table(hist_round){
+        let events = [];
+
+        if (offers != []){
+            for (var i = 0; i < offers.length; i++){
+                if (offers[i][0]==hist_round){
+                    events.push([offers[i][1], offers[i][3], offers[i][5], offers[i][6], offers[i][7], ""])
+                }
+            }
+        }
+
+        if (transactions != []){
+            for (var i = 0; i < transactions.length; i++){
+                if (transactions[i][0]==hist_round){
+                    if (transactions[i][9]=='ask' || transactions[i][9]=='sell'){
+                        events.push([transactions[i][1], transactions[i][5], transactions[i][9], transactions[i][7], transactions[i][8], transactions[i][3]])
+                    } else {
+                        events.push([transactions[i][1], transactions[i][3], transactions[i][9], transactions[i][7], transactions[i][8], transactions[i][5]])
+                    }
+                }
+            }
+        }
+
+        const dateFromStr = str => new Date('1970/01/01 ' + str);
+        events = events.sort((a, b) => dateFromStr(b[0]) - dateFromStr(a[0]));
+
+        console.log(events);
+
+
+        $("#period_sum_table tr").remove(); // in case redrawing table
+        let txt_header = "";
+        txt_header += "<tr>";
+        txt_header += "<th style='text-align:center;'>Time Left</th>"
+        txt_header += "<th style='text-align:center;'>Subject ID</th>"
+        txt_header += "<th style='text-align:center;'>Action</th>"
+        txt_header += "<th style='text-align:center;'>Price</th>"
+        txt_header += "<th style='text-align:center;'>Quantity</th>"
+        txt_header += "<th style='text-align:center;'>Trade With</th>"
+        txt_header += "</tr>"
+        $('#period_sum_table thead').append(txt_header);
+
+        let txt_row = "";
+        for (var i = 0; i < events.length; i++){
+            txt_row += "<tr>";
+            if (i > 0 && events[i][0]==events[i-1][0] && events[i][1]==events[i-1][1] && events[i][2]==events[i-1][2]) {
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(events[i][3]).toFixed(2) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][4] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][5] + "</td>";
+            } else {
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][0] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][1] + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][2] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(events[i][3]).toFixed(2) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][4] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][5] + "</td>";
+            }
+            txt_row += "</tr>";
+        }
+        $('#period_sum_table tbody').append(txt_row);
+    }
+
+    function populate_sub_info_table(hist_round){
+        $("#sub_info_table tr").remove(); // in case redrawing table
+        let txt_header = "";
+        txt_header += "<tr>";
+        txt_header += "<th style='text-align:center;'>Subject ID</th>"
+        txt_header += "<th style='text-align:center;'>Role</th>"
+        txt_header += "<th style='text-align:center;'>Units Endowed</th>"
+        txt_header += "<th style='text-align:center;'>Units Traded</th>"
+        txt_header += "<th style='text-align:center;'>Payoff in Period</th>"
+        txt_header += "<th style='text-align:center;'>Cumulative Payoff</th>"
+        txt_header += "</tr>"
+        $('#period_sum_table thead').append(txt_header);
+
+        let txt_row = "";
+        for (var i = 0; i < events.length; i++){
+            txt_row += "<tr>";
+            if (i > 0 && events[i][0]==events[i-1][0] && events[i][1]==events[i-1][1] && events[i][2]==events[i-1][2]) {
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(events[i][3]).toFixed(2) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][4] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][5] + "</td>";
+            } else {
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][0] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][1] + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][2] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(events[i][3]).toFixed(2) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][4] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][5] + "</td>";
+            }
+            txt_row += "</tr>";
+        }
+        $('#period_sum_table tbody').append(txt_row);
     }
 </script>
