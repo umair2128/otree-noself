@@ -203,13 +203,23 @@ def vars_for_admin_report(subsession):
             buyers_data[i].sort(key=lambda x: x[1], reverse=True)
             buyers_data[i][subsession.session.num_induc_val_steps + 1][1] = 0
 
+    players_data = []
+
+    for p in subsession.get_players():
+        for i in range(subsession.session.total_rounds):
+            players_data.append([p.id_in_group, "buyer" if p.is_buyer else "seller", i+1, ast.literal_eval(p.in_round(i+1).inducement)[i], p.in_round(i+1).payoff_new if p.in_round(i+1).payoff_new != None else 0, p.in_round(i+1).session_payoff if p.in_round(i+1).session_payoff != None else 0])
+
+    #print(players_data)
+
+    #for i in range(subsession.ge):
+
     return dict(
         buyers_data=buyers_data,
         sellers_data=sellers_data,
         total_rounds=subsession.session.total_rounds,
-        offers=Group.offers,
-        transactions=Group.transactions,
-
+        offers=str(copy.deepcopy(Group.offers)),
+        transactions=str(copy.deepcopy(Group.transactions)),
+        players_data= str(copy.deepcopy(players_data)),
     )
 
 
@@ -325,8 +335,6 @@ def creating_session(subsession: Subsession):
     Group.transactions = str(copy.deepcopy([]))
     Group.bids = str(copy.deepcopy([]))
     Group.asks = str(copy.deepcopy([]))
-    #Group.bids = str(copy.deepcopy([[] for i in range(subsession.session.total_rounds)]))
-    #Group.asks = str(copy.deepcopy([[] for i in range(subsession.session.total_rounds)]))
 
     # The following block of code ensures that at the beginning of each round/sub-session, the session-wide participant variables are copied for each player (Some of these are later updated and re-populated with data from all previous rounds)
     for player in subsession.get_players():
@@ -343,15 +351,15 @@ def creating_session(subsession: Subsession):
 
 class Group(BaseGroup):
     start_timestamp = models.IntegerField() # Captures the time at which all players arrive and the experiment begins
-    total_rounds = models.IntegerField()
-    timeout_seconds = models.IntegerField()
-    wait_timeout_seconds = models.IntegerField()
-    multiple_unit_trading = models.BooleanField()
-    relative_price_imp = models.StringField()
-    offers = models.LongStringField()
-    transactions = models.LongStringField()
-    bids = models.LongStringField()
-    asks = models.LongStringField()
+    total_rounds = models.IntegerField() # Captures the total number of rounds/periods in the experiment (Picked up from SESSION_CONFIGS)
+    timeout_seconds = models.IntegerField() # The amount of time (in seconds) each subject will have in every period for carrying out trades (Picked up from SESSION_CONFIGS)
+    wait_timeout_seconds = models.IntegerField() # The amount of time (in seconds) for which the subjects would have to wait at the end of each trading period before the next period begins (Picked up from SESSION_CONFIGS)
+    multiple_unit_trading = models.BooleanField() # Captures if subjects are allowed to bid/ask or buy/sell multiple units in each offer they make (Picked up from SESSION_CONFIGS)
+    relative_price_imp = models.StringField() # Enforces price improvement relative to the current best offer OR relative to own best offer (Picked up from SESSION_CONFIGS)
+    offers = models.LongStringField() # A nested list which keeps track of all bid/ask offers made in the experiment
+    transactions = models.LongStringField() # A nested list which keeps track of all completed transactions in the experiment
+    bids = models.LongStringField() # A nested list of all outstanding bids at a given point in time
+    asks = models.LongStringField() # A nested list of all outstanding asks at a given point in time
 
 
 
@@ -364,7 +372,7 @@ class Player(BasePlayer):
     current_offer = models.FloatField(initial=0) # Records the ECU amount of the standing offer for buyer/seller
     current_quant = models.IntegerField(initial=0) # Records the quantity offered for purchase/sale at the current/standing offer
     order_type = models.StringField() # Records whether it is a 'limit' or a 'market' order
-    session_payoff = models.FloatField() # The aggregate payoff/earnings for the player summed over all rounds/trading periods
+    session_payoff = models.FloatField(initial=0) # The aggregate payoff/earnings for the player summed over all rounds/trading periods
     payoff_new = models.FloatField(initial=0) # The period earnings for the player (for some reason the built-in payoff variable was storing the amount rounded to the nearest integer value as float(payoff) did not return floating point numbers)
 
 

@@ -47,7 +47,7 @@
     <div class="tab-content">
         <div id="sub_info" class="tab-pane fade in active">
             <div class="row">
-                <h4 style="text-align:center;vertical-align:middle">Subject Info Table</h4>
+                <h4 style="text-align:center;vertical-align:middle">Subjects Table</h4>
             </div>
             <div class="row" style="overflow-y:scroll;"><!-- Period summary row -->
                     <table id="sub_info_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
@@ -78,7 +78,7 @@
             </div>
 
             <div class="row">
-                <span id="description"></span>
+                <span id="description" style="visibility:hidden;"></span>
             </div>
         </div>
 
@@ -99,6 +99,23 @@
         background-color: #abc7db;
         border-color: #9bb6c9;
     }
+
+    exp {
+      display: inline-block;
+      position: relative;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      vertical-align: middle;
+      text-align: center;
+    }
+    exp:hover {
+        z-index: 1;
+        width: auto;
+        font-family: monospace;
+        background-color: #FFFFCC;
+    }
 </style>
 
 <script>
@@ -107,6 +124,7 @@
     let buyers_data = {{buyers_data | safe}};
     let sellers_data = {{sellers_data | safe}};
     let total_rounds = {{total_rounds | safe}};
+    let players_data = {{players_data}};
     let hist_text = document.getElementById('hist_text');
     let description = document.getElementById('description');
     let hist_round = 1;
@@ -124,6 +142,7 @@
     console.log("transactions: ", transactions);
     console.log("buyers data: ", buyers_data);
     console.log("sellers data: ", sellers_data);
+    console.log("players: ", players_data);
 
     window.onload = function () {
         reset_hist_nav_buttons();
@@ -421,7 +440,7 @@
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
-                    zIndex: 3,
+                    zIndex: 5,
                 },
                 {
                     name: 'Ask',
@@ -451,7 +470,7 @@
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
-                    zIndex: 5,
+                    zIndex: 6,
                 },
                 {
                     name: 'Sell',
@@ -466,7 +485,7 @@
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
-                    zIndex: 6,
+                    zIndex: 3,
                 }],
             });
         });
@@ -544,10 +563,30 @@
         txt_header += "<th style='text-align:center;'>Role</th>"
         txt_header += "<th style='text-align:center;'>Units Endowed</th>"
         txt_header += "<th style='text-align:center;'>Units Traded</th>"
-        txt_header += "<th style='text-align:center;'>Payoff in Period</th>"
+        txt_header += "<th style='text-align:center;'>Period Payoff</th>"
         txt_header += "<th style='text-align:center;'>Cumulative Payoff</th>"
         txt_header += "</tr>"
         $('#sub_info_table thead').append(txt_header);
 
+        let txt_row = "";
+        for (var i = 0; i < players_data.length; i++){
+            if (players_data[i][2]==hist_round){
+                txt_row += "<tr>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + players_data[i][0] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + players_data[i][1] + "</td>";
+                units_endowed = 0;
+                units_traded = 0;
+                for (var j = 0; j < players_data[i][3].length; j++){
+                    units_endowed += Number(players_data[i][3][j][1])
+                    units_traded += Number(players_data[i][3][j][2])
+                }
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + units_endowed + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + units_traded + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(players_data[i][4]).toFixed(2) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(players_data[i][5]).toFixed(2) + "</exp>" + "</td>";
+                txt_row += "</tr>";
+            }
+        }
+        $('#sub_info tbody').append(txt_row);
     }
 </script>
