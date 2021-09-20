@@ -224,34 +224,34 @@
 
 
     <script>
-        let my_id = js_vars.id_in_group;
-        let is_buyer = js_vars.is_buyer;
-        let this_round = js_vars.cur_round;
-        let total_rounds = js_vars.total_rounds;
-        let upd_ind = js_vars.inducement;
+        let my_id = js_vars.id_in_group; //the id of the player
+        let is_buyer = js_vars.is_buyer; //'True' if the player is a buyer, 'False' otherwise
+        let this_round = js_vars.cur_round; //the current round/period
+        let total_rounds = js_vars.total_rounds; //the total number of rounds/periods in the experiment
+        let upd_ind = js_vars.inducement; //stores the player's inducements and all of the other relevant data
 
-        let upd_bids = [];
-        let upd_asks = [];
-        let ticker_data = [];
+        let upd_bids = []; //stores the frequency list of outstanding bids
+        let upd_asks = []; //stores the frequency list of outstanding asks
+        let ticker_data = []; //stores the list of completed transactions
 
-        let period_earnings = 0;
-        let session_earnings = js_vars.session_payoff;
-        let multi_unit_trading = js_vars.multiple_unit_trading;
-        let rel_price_imp = js_vars.relative_price_imp;
+        let period_earnings = 0; //score in the current period/round
+        let session_earnings = js_vars.session_payoff; //cumulative score
+        let multi_unit_trading = js_vars.multiple_unit_trading; //picks up whether the experiment is configured to allow multi-unit trading
+        let rel_price_imp = js_vars.relative_price_imp; //picks up whether the experiment is configured to have price improvement relative to 'self' or 'all'
 
-        let my_offer = document.getElementById('my_offer');
-        let my_quant1 = document.getElementById('my_quant1');
-        let my_quant2 = document.getElementById('my_quant2');
-        let comp_trades = document.getElementById('comp_trades');
+        let my_offer = document.getElementById('my_offer'); //the input box for the limit order offer (i.e. ask/bid price)
+        let my_quant1 = document.getElementById('my_quant1'); //the input box for the limit order quantity
+        let my_quant2 = document.getElementById('my_quant2'); //the input box for the market order quantity
+        let comp_trades = document.getElementById('comp_trades'); //the div where the completed trades ticker resides
 
-        let outstanding_offer = 0;
-        let outstanding_quant = 0;
+        let outstanding_offer = 0; //the existing bid/ask
+        let outstanding_quant = 0; //unit(s) wanted/offered at the existing bid/ask
 
-        let error_1 = document.getElementById('error_1');
-        let error_2 = document.getElementById('error_2');
+        let error_1 = document.getElementById('error_1'); //the div where the error message pops up when the user makes an attempt to place an invalid limit order
+        let error_2 = document.getElementById('error_2'); //the div where the error message pops up when the user makes an attempt to place an invalid market order
 
-        event_messages = document.getElementById('event_messages');
-        hist_text = document.getElementById('hist_text');
+        event_messages = document.getElementById('event_messages'); //the div which is populated by messages
+        hist_text = document.getElementById('hist_text');  //the caption of the summary table (e.g., Period 1 Summary)
 
         let offer_c = 0;
         let quant_c = 0;
@@ -259,6 +259,7 @@
 
         $("#my_quant1").on('keydown keyup change', function(e){
             var max_quant1 = update_quant1(upd_ind);
+            console.log("#my_quant1 - max_quant1: ", max_quant1);
             if ($(this).val() > max_quant1 && e.keyCode !== 46 && e.keyCode !== 8){
                e.preventDefault();
                $(this).val("");
@@ -279,6 +280,7 @@
 
         $("#my_quant2").on('keydown keyup change', function(e){
             var max_quant2 = update_quant2(upd_ind);
+            console.log("#my_quant2 - max_quant2: ", max_quant2);
             if ($(this).val() > max_quant2 && e.keyCode !== 46 && e.keyCode !== 8){
                e.preventDefault();
                $(this).val("");
@@ -298,8 +300,10 @@
 
 
         $("#btn-lim-order").on('click', function(e){
+            console.log("#btn-lim-order - my_offer.value: ", my_offer.value);
+            console.log("#btn-lim-order - offer_c: ", offer_c);
             if(is_buyer){
-                if (my_offer.value < offer_c){
+                if (Number.parseFloat(my_offer.value) < Number.parseFloat(offer_c)){
                     my_offer.value = "";
                     my_quant1.value = "";
                     $("#btn-lim-order").attr('disabled', true);
@@ -315,16 +319,19 @@
                     }, 3500);
                 } else {
                     limitOrder();
-                    outstanding_offer = my_offer.value;
-                    outstanding_quant = my_quant1.value;
-                    update_offer_table(my_offer.value,my_quant1.value);
+                    console.log("#btn-lim-order - outstanding_offer: ", outstanding_offer);
+                    console.log("#btn-lim-order - outstanding_quant: ", outstanding_quant);
+                    outstanding_offer = Number.parseFloat(my_offer.value);
+                    outstanding_quant = Number.parseInt(my_quant1.value);
+                    update_offer_table(Number.parseFloat(my_offer.value),Number.parseInt(my_quant1.value));
                     my_quant1.value = "";
                     my_offer.value = "";
                     var max_quant1 = update_quant1(upd_ind);
+                    console.log("#btn-lim-order - max_quant1: ", max_quant1);
                     $("#btn-lim-order").attr('disabled', true);
                 }
             } else {
-                if (offer_c!=0 && my_offer.value > offer_c){
+                if (Number.parseFloat(offer_c)!=0 && Number.parseFloat(my_offer.value) > Number.parseFloat(offer_c)){
                     my_offer.value = "";
                     my_quant1.value = "";
                     $("#btn-lim-order").attr('disabled', true);
@@ -340,12 +347,15 @@
                     }, 3500);
                 } else {
                     limitOrder();
-                    outstanding_offer = my_offer.value;
-                    outstanding_quant = my_quant1.value;
-                    update_offer_table(my_offer.value,my_quant1.value);
+                    outstanding_offer = Number.parseFloat(my_offer.value);
+                    outstanding_quant = Number.parseInt(my_quant1.value);
+                    console.log("#btn-lim-order - outstanding_offer: ", outstanding_offer);
+                    console.log("#btn-lim-order - outstanding_quant: ", outstanding_quant);
+                    update_offer_table(Number.parseFloat(my_offer.value),Number.parseInt(my_quant1.value));
                     my_quant1.value = "";
                     my_offer.value = "";
                     var max_quant1 = update_quant1(upd_ind);
+                    console.log("#btn-lim-order - max_quant1: ", max_quant1);
                     $("#btn-lim-order").attr('disabled', true);
                 }
             }
@@ -355,6 +365,7 @@
 
         $("#btn-mkt-order").on('click', function(e){
             var max_quant2 = update_quant2(upd_ind);
+            console.log("#btn-mkt-order - max_quant2: ", max_quant2);
             $("#btn-mkt-order").attr('disabled', true);
             marketOrder();
             my_quant2.value = "";
@@ -364,12 +375,12 @@
 
         document.addEventListener("keyup", function(event) {
             setTimeout(function() {
-                if (my_quant1.value > 0 && my_offer.value > 0){
+                if (Number.parseInt(my_quant1.value) > 0 && Number.parseFloat(my_offer.value) > 0){
                     $("#btn-lim-order").attr('disabled', false);
                 } else {
                     $("#btn-lim-order").attr('disabled', true);
                 }
-                if (my_quant2.value > 0) {
+                if (Number.parseInt(my_quant2.value) > 0) {
                     $("#btn-mkt-order").attr('disabled', false);
                 } else {
                     $("#btn-mkt-order").attr('disabled', true);
@@ -747,16 +758,20 @@
 
                 if (rel_price_imp != "all"){
                     offer_c = Number(offer).toFixed(2);
+                    console.log("update_offer_table - offer_c: ", offer_c);
                 }
                 quant_c = quant;
+                console.log("update_offer_table - quant_c: ", quant_c);
 
                 $('#offer_table tbody').append(txt_row);
             } else {
                 create_offer_table();
                 if (rel_price_imp != "all"){
                     offer_c = 0;
+                    console.log("update_offer_table - offer_c: ", offer_c);
                 }
                 quant_c = 0;
+                console.log("update_offer_table - quant_c: ", quant_c);
             }
         }
 
@@ -879,10 +894,23 @@
         function liveRecv(data) {
             let {bids, asks, current_offer, current_quant, inducement, news, event, payoff, session_payoff, offers, transactions, det_bids, det_asks, order_type} = data;
 
-            console.log('OFFERS: ', offers);
-            console.log('TRANSACTIONS: ', transactions);
-            console.log('DET BIDS: ', det_bids);
-            console.log('DET ASKS: ', det_asks);
+
+
+
+
+
+            console.log('liveRecv - bids: ', bids);
+            console.log('liveRecv - asks: ', asks);
+            console.log('liveRecv - current_offer: ', current_offer);
+            console.log('liveRecv - current_quant: ', current_quant);
+            console.log('liveRecv - inducement: ', inducement);
+            console.log('liveRecv - payoff: ', payoff);
+            console.log('liveRecv - session_payoff: ', session_payoff);
+            console.log('liveRecv - offers: ', offers);
+            console.log('liveRecv - transactions: ', transactions);
+            console.log('liveRecv - detailed bids: ', det_bids);
+            console.log('liveRecv - detailed asks: ', det_asks);
+            console.log('liveRecv - order_type: ', order_type);
 
             $("#btn-mkt-order").attr('disabled', true);
 
@@ -906,6 +934,7 @@
                 } else {
                     offer_c = 0;
                 }
+                console.log('liveRecv - offer_c: ', offer_c);
             }
 
             let existing_offer_quant = 0;
@@ -927,6 +956,9 @@
                 }
             }
 
+            console.log('liveRecv - existing_offer_quant: ', existing_offer_quant);
+            console.log('liveRecv - existing_offer_amt: ', existing_offer_amt);
+
             if (existing_offer_quant > 0){
                 outstanding_offer = existing_offer_amt;
                 outstanding_quant = existing_offer_quant;
@@ -934,6 +966,9 @@
                 outstanding_offer = current_offer;
                 outstanding_quant = current_quant;
             }
+
+            console.log('liveRecv - outstanding_offer: ', outstanding_offer);
+            console.log('liveRecv - outstanding_quant: ', outstanding_quant);
 
             populate_bid_ask_table(bids, asks);
             populate_best_bid_ask_table(bids, asks);
