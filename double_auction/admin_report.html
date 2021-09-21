@@ -1,14 +1,8 @@
-<!-- Bootstrap CSS-->
-<!--Bootstrap Font Icon CSS-->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
-
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"/>
-
 
 <!-- Linking Highcharts -->
 <script src="https://code.highcharts.com/highcharts.js"></script>
@@ -18,7 +12,9 @@
 <script src="https://code.highcharts.com/modules/boost.js"></script>
 
 <div class="container">
-    <ul class="nav nav-tabs">
+    <br>
+
+    <ul class="nav nav-tabs"> <!-- Tabs Panel -->
         <li class="active"><a data-toggle="tab" href="#sub_info">Subject Info</a></li>
         <li><a data-toggle="tab" href="#mkt_act">Market Activity</a></li>
         <li><a data-toggle="tab" href="#mkt_hist">Market History</a></li>
@@ -26,7 +22,7 @@
 
     <br>
 
-    <div class="row" style="vertical-align:middle;align-items:center;justify-content: center;">
+    <div class="row" style="vertical-align:middle;align-items:center;justify-content: center;"> <!-- Navigation Buttons Panel -->
         <div class="col-1" style="border: none;">
             <button class="btn-sm btn-primary" type="button" id="btn-first"><i class="bi-chevron-double-left"></i></button>
         </div>
@@ -45,48 +41,39 @@
     </div>
 
     <div class="tab-content">
-        <div id="sub_info" class="tab-pane fade in active">
+        <div id="sub_info" class="tab-pane fade in active"> <!-- Content under the Subjects Info Tab  -->
             <div class="row">
                 <h4 style="text-align:center;vertical-align:middle">Subjects Table</h4>
             </div>
-            <div class="row" style="overflow-y:scroll;"><!-- Period summary row -->
-                    <table id="sub_info_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
+            <div class="row" style="height:500px;overflow-y:scroll;">
+                <table id="sub_info_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
             </div>
         </div>
 
-        <div id="mkt_act" class="tab-pane fade">
+        <div id="mkt_act" class="tab-pane fade"> <!-- Content under the Market Activity Tab  -->
             <div class="row">
                 <h4 style="text-align:center;vertical-align:middle">Summary Table</h4>
             </div>
-
-            <div class="row" style="overflow-y:scroll;"><!-- Period summary row -->
-                    <table id="period_sum_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
+            <div class="row" style="height:500px;overflow-y:scroll;">
+                <table id="period_sum_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
             </div>
         </div>
 
-        <div id="mkt_hist" class="tab-pane fade">
+        <div id="mkt_hist" class="tab-pane fade"> <!-- Content under the Market History Tab  -->
             <div class="row">
                 <h4 style="text-align:center;vertical-align:middle">Summary Graph</h4>
             </div>
-
             <div class="row">
-                    <div id="pred_eq_box" style="font-size:12px;width:20%;border:1px solid #A7A7A7;background-color:#F1F1F1;vertical-align:bottom;text-align:left;justify-content:right;align-items:right;margin-left:4%;"></div>
+                <div id="pred_eq_box" style="font-size:12px;width:20%;border:1px solid #A7A7A7;background-color:#F1F1F1;vertical-align:bottom;text-align:left;justify-content:right;align-items:right;margin-left:4%;"></div>
             </div>
-
             <div class="row">
                 <div id="Graph" style="height: 400px"></div>
             </div>
-
             <div class="row">
                 <span id="description" style="visibility:hidden;"></span>
             </div>
         </div>
-
-
     </div>
-
-
-
 </div>
 
 
@@ -110,6 +97,7 @@
       vertical-align: middle;
       text-align: center;
     }
+
     exp:hover {
         z-index: 1;
         width: auto;
@@ -118,44 +106,44 @@
     }
 </style>
 
-<script>
-    let offers = {{offers | safe}};
-    let transactions = {{transactions | safe}};
-    let buyers_data = {{buyers_data | safe}};
-    let sellers_data = {{sellers_data | safe}};
-    let total_rounds = {{total_rounds | safe}};
-    let players_data = {{players_data}};
-    let hist_text = document.getElementById('hist_text');
-    let description = document.getElementById('description');
-    let hist_round = 1;
-    let max_y = 100;
-    let min_y = 0;
-    let eq_q = 0;
-    let eq_p_l = 0;
-    let eq_p_h = 0;
-    let bids = [];
-    let asks = [];
-    let buys = [];
-    let sells = [];
 
-    console.log("offers: ", offers);
-    console.log("transactions: ", transactions);
-    console.log("buyers data: ", buyers_data);
-    console.log("sellers data: ", sellers_data);
-    console.log("players: ", players_data);
+<script>
+    let offers = {{offers | safe}}; // A detailed list of all the offers in the experiment
+    let transactions = {{transactions | safe}}; // A detailed list of all the successful transactions in the experiment
+    let buyers_data = {{buyers_data | safe}}; // The data used to draw the demand curve based on induced values
+    let sellers_data = {{sellers_data | safe}}; // The data used to draw the supply curve based on induced values
+    let total_rounds = {{total_rounds | safe}}; // Total number of rounds in the experiment
+    let players_data = {{players_data}}; // Detailed data on players' role, inducements, trades, and payoff in the experiment
+
+    let hist_text = document.getElementById('hist_text'); // Caption for the Navigation Tab indicating the period for which the information is displayed
+    let description = document.getElementById('description'); // Description of the graph
+
+    let hist_round = 1; // Keeps track of the round for which the information is displayed
+
+    let max_y = 100; // The maximum value for the vertical axis (initially 100)
+    let min_y = 0; // The minimum value for the vertical axis (initially 0)
+
+    let eq_q = 0; // Captures the predicted equilibrium quantity in a given period based on induced values
+    let eq_p_l = 0; // Captures the lower bound for the predicted equilibrium price in a given period based on induced values
+    let eq_p_h = 0; // Captures the upper bound for the predicted equilibrium price in a given period based on induced values
+
+    let bids = []; // Uses 'offers' to populate the data on bids for the summary graph for a given period
+    let asks = []; // Uses 'offers' to populate the data on asks for the summary graph for a given period
+    let buys = []; // Uses 'transactions' to populate the data on purchases for the summary graph for a given period
+    let sells = []; // Uses 'transactions' to populate the data on sales for the summary graph for a given period
+
 
     window.onload = function () {
-        reset_hist_nav_buttons();
-        set_yaxis_limits(hist_round);
-        set_eq(hist_round);
-        prepare_offers_data(hist_round);
-        prepare_transaction_data(hist_round);
-        populate_sub_info_table(hist_round);
-        populate_period_sum_table(hist_round);
-        upd_pred_eq_box();
-        draw_graph(hist_round);
+        reset_hist_nav_buttons(); // On page load, this resets the navigation buttons panel to their period 1 state
+        set_yaxis_limits(hist_round); // Sets the vertical axis lower and upper limits for the summary graph for the given period
+        set_eq(hist_round); // This determines the equilibrium price range and the equilibrium quantity given the induced values in the period in question
+        prepare_offers_data(hist_round); // Prepares the data to display 'bids' and 'asks' as scatter points on the summary graph for a given period
+        prepare_transaction_data(hist_round); // Prepares the data to display 'buys' and 'sells' as scatter points on the summary graph for the given period
+        populate_sub_info_table(hist_round); // Populates the subjects information table which displays, for each subject, their id, role, units endowed, units traded, period and cumulative payoffs in the given round
+        populate_period_sum_table(hist_round); // Populates the period summary table which displays an ordered (by time left) list of offers (bids/asks) and transactions (purchases/sales) which have taken place in the given period
+        upd_pred_eq_box(); // Shows the predicted equilibrium price range and quantity in a box on the top-left of the summary graph
+        draw_graph(hist_round); // Draws the summary graph for the given period
     }
-
 
     function prepare_offers_data(hist_round){
         bids=[];
@@ -172,7 +160,6 @@
         }
     }
 
-
     function prepare_transaction_data(hist_round){
         buys=[];
         sells=[];
@@ -188,11 +175,9 @@
         }
     }
 
-
     function set_yaxis_limits(hist_round){
         period_offers = [];
         period_transactions = [];
-
         if (offers != []){
             for (var i = 0; i < offers.length; i++){
                 if (offers[i][0]==hist_round){
@@ -200,7 +185,6 @@
                 }
             }
         }
-
         if (transactions != []){
             for (var i = 0; i < transactions.length; i++){
                 if (transactions[i][0]==hist_round){
@@ -208,44 +192,32 @@
                 }
             }
         }
-
-        console.log(period_offers);
-        console.log(period_transactions);
-
+        // The following block of code ensures that the lower(upper) limits for the vertical axis take into consideration the min(max) of offers, transactions, and the demand and supply schedules
         max_offers = Math.max.apply(Math,period_offers);
         min_offers = Math.min.apply(Math,period_offers);
-
         max_transactions = Math.max.apply(Math,period_transactions);
         min_transactions = Math.min.apply(Math,period_transactions);
-
-
         max_y = Math.max(buyers_data[hist_round-1][1][1], max_offers, max_transactions) + 5;
         min_y = Math.max(Math.min(sellers_data[hist_round-1][1][1], min_offers, min_transactions) - 5,0);
-
-        console.log(max_y);
-        console.log(min_y);
     }
-
 
     function set_eq(hist_round){
         for (var i = 0; i < buyers_data[hist_round-1].length; i++){
-            if (buyers_data[hist_round-1][i][1]<sellers_data[hist_round-1][i][1]){break;}
+            if (buyers_data[hist_round-1][i][1]<sellers_data[hist_round-1][i][1]){break;} // The equilibrium step of induced values is such that at this step, buyers' induced value is less than the sellers' induced value
             eq_q = buyers_data[hist_round-1][i+1][0];
             eq_p_l = buyers_data[hist_round-1][i+1][1];
             eq_p_h = sellers_data[hist_round-1][i+1][1];
         }
     }
 
-
     function reset_hist_nav_buttons(){
         hist_text.innerHTML = "Period " + hist_round;
-
+        // In the first period, the go to 'First' and 'Previous' period buttons are disabled
         $("#btn-first").attr('disabled', true);
         $("#btn-prev").attr('disabled', true);
         $("#btn-next").attr('disabled', false);
         $("#btn-last").attr('disabled', false);
     }
-
 
     $("#btn-first").on('click', function(e){
         hist_round = 1;
@@ -264,11 +236,9 @@
         $("#btn-last").attr('disabled', false);
     });
 
-
     $("#btn-prev").on('click', function(e){
         $("#btn-next").attr('disabled', false);
         $("#btn-last").attr('disabled', false);
-
         hist_round = hist_round - 1;
         hist_text.innerHTML = "Period " + hist_round;
         set_yaxis_limits(hist_round);
@@ -279,18 +249,15 @@
         populate_period_sum_table(hist_round);
         upd_pred_eq_box();
         draw_graph(hist_round);
-
         if (hist_round == 1){
             $("#btn-first").attr('disabled', true);
             $("#btn-prev").attr('disabled', true);
         }
     });
 
-
     $("#btn-next").on('click', function(e){
         $("#btn-prev").attr('disabled', false);
         $("#btn-first").attr('disabled', false);
-
         hist_round = hist_round + 1;
         hist_text.innerHTML = "Period " + hist_round;
         set_yaxis_limits(hist_round);
@@ -301,13 +268,11 @@
         populate_period_sum_table(hist_round);
         upd_pred_eq_box();
         draw_graph(hist_round);
-
         if (hist_round == total_rounds){
             $("#btn-next").attr('disabled', true);
             $("#btn-last").attr('disabled', true);
         }
     });
-
 
     $("#btn-last").on('click', function(e){
         hist_round = total_rounds;
@@ -331,7 +296,6 @@
         '<b>' + 'Price Range: ' + '</b>' + Number(eq_p_l).toFixed(2) + "-" + Number(eq_p_h).toFixed(2) + '<br/>' +
         '<b>' + 'Quantity: ' + '</b>' + eq_q;
     }
-
 
     function draw_graph(hist_round){
         description.innerHTML = "<p>" + "The predicted equilibrium quantity is " + eq_q + "." + "</p>" +
@@ -580,6 +544,9 @@
                     units_endowed += Number(players_data[i][3][j][1])
                     units_traded += Number(players_data[i][3][j][2])
                 }
+                session_payoff = 0;
+                /*for (var j = 0; j < players_data.length; i++){
+                }*/
                 txt_row += "<td style='vertical-align:middle;text-align:center;'>" + units_endowed + "</td>";
                 txt_row += "<td style='vertical-align:middle;text-align:center;'>" + units_traded + "</td>";
                 txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(players_data[i][4]).toFixed(2) + "</exp>" + "</td>";

@@ -165,9 +165,9 @@
             display: none;
         }
 
-        .card {
+        /*.card {
             display: none;
-        }
+        }*/
 
         exp {
           display: inline-block;
@@ -307,7 +307,7 @@
                     my_offer.value = "";
                     my_quant1.value = "";
                     $("#btn-lim-order").attr('disabled', true);
-                    error_1.innerHTML = "Your bid price has to be greater than " + offer_c + "." ;
+                    error_1.innerHTML = "Your bid price has to be greater than " + Number(offer_c).toFixed(2) + "." ;
                     $('#error_1').addClass('fading');
 
                     setTimeout(function() {
@@ -335,7 +335,7 @@
                     my_offer.value = "";
                     my_quant1.value = "";
                     $("#btn-lim-order").attr('disabled', true);
-                    error_1.innerHTML = "Your ask price has to be less than " + offer_c + "." ;
+                    error_1.innerHTML = "Your ask price has to be less than " + Number(offer_c).toFixed(2) + "." ;
                     $('#error_1').addClass('fading');
 
                     setTimeout(function() {

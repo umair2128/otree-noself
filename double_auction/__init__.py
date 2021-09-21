@@ -207,11 +207,12 @@ def vars_for_admin_report(subsession):
 
     for p in subsession.get_players():
         for i in range(subsession.session.total_rounds):
-            players_data.append([p.id_in_group, "buyer" if p.is_buyer else "seller", i+1, ast.literal_eval(p.in_round(i+1).inducement)[i], p.in_round(i+1).payoff_new if p.in_round(i+1).payoff_new != None else 0, p.in_round(i+1).session_payoff if p.in_round(i+1).session_payoff != None else 0])
-
-    #print(players_data)
-
-    #for i in range(subsession.ge):
+            players_data.append([
+                p.id_in_group, "buyer" if p.is_buyer else "seller", i + 1,
+                ast.literal_eval(p.in_round(i + 1).inducement)[i],
+                p.in_round(i + 1).payoff_new,
+                p.in_round(i + 1).session_payoff
+            ])
 
     return dict(
         buyers_data=buyers_data,
@@ -253,9 +254,9 @@ def creating_session(subsession: Subsession):
         # The entries in each index of each indiviudal list are as follows: 0.induced value (assinged later), 1.quantity endowed, 2.quantity sold/purchased, 3.quantity available, 4.order type (will be populated by either 'limit' or 'market'), 5.price, 6.unit profit, 7.total profit
         # The 'if' statement below checks for whether a fixed quantity is to be endowed at each step of induced values or not.
         if session.quant_at_indc_val == 0:
-            session.presets_template = [[[0, session.num_induc_val_steps-i, 0, session.num_induc_val_steps-i, 'NA' , 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
+            session.presets_template = [[[0, session.num_induc_val_steps-i, 0, session.num_induc_val_steps-i, '' , 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
         else:
-            session.presets_template = [[[0, session.quant_at_indc_val, 0, session.quant_at_indc_val, 'NA' , 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
+            session.presets_template = [[[0, session.quant_at_indc_val, 0, session.quant_at_indc_val, '' , 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
 
         # If there are two types each of sellers and buyers, then each buyer/seller is assigned to one of these types. The difference between these types is that at each 'step', type 2 sellers' induced value is 'session.step_diff_per_type/2' ECUs higher than type 1 sellers and type 2 buyers' induced value is 'session.step_diff_per_type/2' ECUs lower than type 1 buyers (This distinction between types doesn't disturb the predicted equilibrium quantity)
         if session.num_types == 2:
@@ -372,7 +373,7 @@ class Player(BasePlayer):
     current_offer = models.FloatField(initial=0) # Records the ECU amount of the standing offer for buyer/seller
     current_quant = models.IntegerField(initial=0) # Records the quantity offered for purchase/sale at the current/standing offer
     order_type = models.StringField() # Records whether it is a 'limit' or a 'market' order
-    session_payoff = models.FloatField(initial=0) # The aggregate payoff/earnings for the player summed over all rounds/trading periods
+    session_payoff = models.FloatField(initial=0) # The aggregate payoff/earnings for the player summed over all previous rounds/trading periods
     payoff_new = models.FloatField(initial=0) # The period earnings for the player (for some reason the built-in payoff variable was storing the amount rounded to the nearest integer value as float(payoff) did not return floating point numbers)
 
 
@@ -557,7 +558,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                         if buyer_inducement[buyer.round_number - 1][i][5] == 0 or buyer_inducement[buyer.round_number - 1][i][5] == price: # If either no units have been bought yet at the ith step of induced values or if the price at which previous units were bought is the same as that for the current unit bought, then we just need to update data on this step
                             buyer_inducement[buyer.round_number - 1][i][2] = buyer_inducement[buyer.round_number - 1][i][2] + 1 # As an additional unit has beeen bought at ith step of induced values at the same price as previous unit(s), then reflect this change by adding 1 to the number of units bought (if there weren't any prior trades at this step of induced values then just 1 will appear here)
                             buyer_inducement[buyer.round_number - 1][i][3] = buyer_inducement[buyer.round_number - 1][i][3] - 1 # Similar logic to the comment above, reduce 1 from the number of units available
-                            buyer_inducement[buyer.round_number - 1][i][4] = buyer_order_type # Whether the buyer placed a limit or a market order which led to the purchase of this unit
+                            buyer_inducement[buyer.round_number - 1][i][4] += 'L' if buyer_order_type=='limit' else 'M' # Whether the buyer placed a limit or a market order which led to the purchase of this unit
                             buyer_inducement[buyer.round_number - 1][i][5] = float(price) # The price at which trade took place
                             buyer_inducement[buyer.round_number - 1][i][6] = buyer_inducement[buyer.round_number - 1][i][0] - float(price) # Unit profit is simply induced value at the step minus the price paid
                             buyer_inducement[buyer.round_number - 1][i][7] = buyer_inducement[buyer.round_number - 1][i][7] + buyer_inducement[buyer.round_number - 1][i][6] # Total profit is simply the existing total profit at this step (if there have been any prior trades) plus the unit profit as an additional unit was bought at this step (If there weren't any prior trades at this step, then it's just the unit profit)
@@ -569,7 +570,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                                                                              buyer_inducement[buyer.round_number - 1][i][3], # Quantity endowed in this case will be the quantity which was available when this bifurcation took place
                                                                              1, # Quantity bought is 1 as this new row has just been created after this trade
                                                                              buyer_inducement[buyer.round_number - 1][i][3] - 1, # Quantity available is simply the quantity endowed minus 1
-                                                                             buyer_order_type, # Whether the buyer placed a limit or a market order which led to the purchase of this unit
+                                                                             'L' if buyer_order_type=='limit' else 'M', # Whether the buyer placed a limit or a market order which led to the purchase of this unit
                                                                              float(price), # The price at which trade took place
                                                                              buyer_inducement[buyer.round_number - 1][i][0] - float(price), # Unit profit
                                                                              buyer_inducement[buyer.round_number - 1][i][0] - float(price) # Total profit is the same as unit profit as this bifurcation has happened when 1 additional unit was bought
@@ -589,7 +590,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                         if seller_inducement[seller.round_number - 1][i][5] == 0 or seller_inducement[seller.round_number - 1][i][5] == price: # If either no units have been sold yet at the ith step of induced values or if the price at which previous units were sold is the same as that for the current unit sold, then we just need to update data on this step
                             seller_inducement[seller.round_number - 1][i][2] = seller_inducement[seller.round_number - 1][i][2] + 1 # As an additional unit has beeen sold at ith step of induced values at the same price as previous unit(s), then reflect this change by adding 1 to the number of units sold (if there weren't any prior trades at this step of induced values then just 1 will appear here)
                             seller_inducement[seller.round_number - 1][i][3] = seller_inducement[seller.round_number - 1][i][3] - 1 # Similar logic to the comment above, reduce 1 from the number of units available
-                            seller_inducement[seller.round_number - 1][i][4] = seller_order_type # Whether the seller placed a limit or a market order which led to the sale of this unit
+                            seller_inducement[seller.round_number - 1][i][4] += 'L' if buyer_order_type=='limit' else 'M' # Whether the seller placed a limit or a market order which led to the sale of this unit
                             seller_inducement[seller.round_number - 1][i][5] = float(price) # The price at which trade took place
                             seller_inducement[seller.round_number - 1][i][6] = float(price) - seller_inducement[seller.round_number - 1][i][0] # Unit profit is simply price received minus the induced value at the step
                             seller_inducement[seller.round_number - 1][i][7] = seller_inducement[seller.round_number - 1][i][7] + seller_inducement[seller.round_number - 1][i][6] # Total profit is simply the existing total profit at this step (if there have been any prior trades) plus the unit profit as an additional unit was sold at this step (If there weren't any prior trades at this step, then it's just the unit profit)
@@ -601,7 +602,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                                                                              seller_inducement[seller.round_number - 1][i][3], # Quantity endowed in this case will be the quantity which was available when this bifurcation took place
                                                                              1, # Quantity sold is 1 as this new row has just been created after this trade
                                                                              seller_inducement[seller.round_number - 1][i][3] - 1, # Quantity available is simply the quantity endowed minus 1
-                                                                             seller_order_type, # Whether the seller placed a limit or a market order which led to the sale of this unit
+                                                                             'L' if buyer_order_type=='limit' else 'M', # Whether the seller placed a limit or a market order which led to the sale of this unit
                                                                              float(price), # The price at which trade took place
                                                                              float(price) - seller_inducement[seller.round_number - 1][i][0], # Unit profit
                                                                              float(price) - seller_inducement[seller.round_number - 1][i][0] # Total profit is the same as unit profit as this bifurcation has happened when 1 additional unit was sold
