@@ -318,7 +318,7 @@
                         error_1.innerHTML = "";
                     }, 3500);
                 } else {
-                    limitOrder();
+                    limitOrder(Number.parseFloat(my_offer.value), Number.parseInt(my_quant1.value));
                     console.log("#btn-lim-order - outstanding_offer: ", outstanding_offer);
                     console.log("#btn-lim-order - outstanding_quant: ", outstanding_quant);
                     outstanding_offer = Number.parseFloat(my_offer.value);
@@ -346,7 +346,7 @@
                         error_1.innerHTML = "";
                     }, 3500);
                 } else {
-                    limitOrder();
+                    limitOrder(Number.parseFloat(my_offer.value), Number.parseInt(my_quant1.value));
                     outstanding_offer = Number.parseFloat(my_offer.value);
                     outstanding_quant = Number.parseInt(my_quant1.value);
                     console.log("#btn-lim-order - outstanding_offer: ", outstanding_offer);
@@ -367,7 +367,7 @@
             var max_quant2 = update_quant2(upd_ind);
             console.log("#btn-mkt-order - max_quant2: ", max_quant2);
             $("#btn-mkt-order").attr('disabled', true);
-            marketOrder();
+            marketOrder(Number.parseInt(my_quant2.value));
             my_quant2.value = "";
             multi_unit_trading_check();
         });
@@ -997,13 +997,13 @@
         }
 
 
-        function marketOrder(){
-            liveSend({'quant': my_quant2.value, 'market_order': "Yes", 'limit_order': ""})
+        function marketOrder(quant){
+            liveSend({'quant': quant, 'market_order': "Yes", 'limit_order': ""})
         }
 
 
-        function limitOrder(){
-            liveSend({'quant': my_quant1.value, 'market_order': "", 'limit_order': my_offer.value})
+        function limitOrder(offer, quant){
+            liveSend({'quant': quant, 'market_order': "", 'limit_order': offer})
         }
 
 

@@ -427,15 +427,15 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
             if player.is_buyer:
                 if len(bids_new) != 0:
                     for i in range(len(bids_new)):
-                        if bids_new[i][0]!=player.round_number and bids_new[i][1]!=player.id_in_group:
+                        if not (bids_new[i][1] == player.id_in_group and bids_new[i][0] == player.round_number):
                             bids_copy.append(bids_new[i])
-                    bids_new = copy.copy(bids_copy)
+                    bids_new = copy.deepcopy(bids_copy)
             else:
                 if len(asks_new) != 0:
                     for i in range(len(asks_new)):
-                        if asks_new[i][0]!=player.round_number and asks_new[i][1]!=player.id_in_group:
+                        if not(asks_new[i][1] == player.id_in_group and asks_new[i][0] == player.round_number):
                             asks_copy.append(asks_new[i])
-                    asks_new = copy.copy(asks_copy)
+                    asks_new = copy.deepcopy(asks_copy)
 
             try:
                 offer = float(data['limit_order'])
