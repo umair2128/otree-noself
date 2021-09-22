@@ -13,6 +13,7 @@
 <script src="https://code.highcharts.com/modules/accessibility.js"></script>
 <script src="https://code.highcharts.com/modules/boost.js"></script>
 
+
 <div class="container">
     <br>
 
@@ -123,17 +124,24 @@
 
 
 <script>
-    let offers = {{offers | safe}}; // A detailed list of all the offers in the experiment
+    let offers = {{offers | safe}}; // A detailed list of all the bid/ask offers in the experiment
     let transactions = {{transactions | safe}}; // A detailed list of all the successful transactions in the experiment
     let buyers_data = {{buyers_data | safe}}; // The data used to draw the demand curve based on induced values
     let sellers_data = {{sellers_data | safe}}; // The data used to draw the supply curve based on induced values
-    let total_rounds = {{total_rounds | safe}}; // Total number of rounds in the experiment
-    let players_data = {{players_data}}; // Detailed data on players' role, inducements, trades, and payoff in the experiment
+    let total_rounds = {{total_rounds | safe}}; // Total number of periods/rounds in the experiment
+    let players_data = {{players_data | safe}}; // Detailed data on players' role, inducements, trades, and payoff in the experiment
+
+    console.log('offers: ', offers);
+    console.log('transactions: ', transactions);
+    console.log('buyers_data: ', buyers_data);
+    console.log('sellers_data: ', sellers_data);
+    console.log('total_rounds: ', total_rounds);
+    console.log('players_data: ', players_data);
 
     let hist_text = document.getElementById('hist_text'); // Caption for the Navigation Tab indicating the period for which the information is displayed
     let description = document.getElementById('description'); // Description of the graph
 
-    let hist_round = 1; // Keeps track of the round for which the information is displayed
+    let hist_round = 1; // Keeps track of the period/round for which the information is displayed (defaults to period 1 on page load/refresh)
 
     let max_y = 100; // The maximum value for the vertical axis (initially 100)
     let min_y = 0; // The minimum value for the vertical axis (initially 0)
@@ -149,46 +157,27 @@
 
 
     window.onload = function () {
-        reset_hist_nav_buttons(); // On page load, this resets the navigation buttons panel to their period 1 state
+        reset_hist_nav_buttons(); // On page load or refresh, this resets the navigation buttons panel to their period 1 state
         set_yaxis_limits(hist_round); // Sets the vertical axis lower and upper limits for the summary graph for the given period
         set_eq(hist_round); // This determines the equilibrium price range and the equilibrium quantity given the induced values in the period in question
-        prepare_offers_data(hist_round); // Prepares the data to display 'bids' and 'asks' as scatter points on the summary graph for a given period
+        prepare_offers_data(hist_round); // Prepares the data to display 'bids' and 'asks' as scatter points on the summary graph for the given period
         prepare_transaction_data(hist_round); // Prepares the data to display 'buys' and 'sells' as scatter points on the summary graph for the given period
-        populate_sub_info_table(hist_round); // Populates the subjects information table which displays, for each subject, their id, role, units endowed, units traded, period and cumulative payoffs in the given round
-        populate_period_sum_table(hist_round); // Populates the period summary table which displays an ordered (by time left) list of offers (bids/asks) and transactions (purchases/sales) which have taken place in the given period
+        populate_sub_info_table(hist_round); // Populates the subjects information table which displays, for each subject, their id, role, units endowed, units traded, period and cumulative payoffs in the given period
+        populate_period_sum_table(hist_round); // Populates the period summary table which displays an ordered list (by time left) of offers (bids/asks) and transactions (purchases/sales) which have taken place in the given period
         upd_pred_eq_box(); // Shows the predicted equilibrium price range and quantity in a box on the top-left of the summary graph
         draw_graph(hist_round); // Draws the summary graph for the given period
     }
 
-    function prepare_offers_data(hist_round){
-        bids=[];
-        asks=[];
-        if (offers != []){
-            for (var i = 0; i < offers.length; i++){
-                if (offers[i][0]==hist_round && offers[i][5]=="bid"){
-                    bids.push([offers[i][2],offers[i][6]]);
-                }
-                if (offers[i][0]==hist_round && offers[i][5]=="ask"){
-                    asks.push([offers[i][2],offers[i][6]]);
-                }
-            }
-        }
+
+    function reset_hist_nav_buttons(){
+        hist_text.innerHTML = "Period " + hist_round;
+        // In the first period, the go to 'Previous' and 'First' period buttons are disabled
+        $("#btn-first").attr('disabled', true);
+        $("#btn-prev").attr('disabled', true);
+        $("#btn-next").attr('disabled', false);
+        $("#btn-last").attr('disabled', false);
     }
 
-    function prepare_transaction_data(hist_round){
-        buys=[];
-        sells=[];
-        if (transactions != []){
-            for (var i = 0; i < transactions.length; i++){
-                if (transactions[i][0]==hist_round && transactions[i][9]=="buy"){
-                    buys.push([transactions[i][2],transactions[i][7]]);
-                }
-                if (transactions[i][0]==hist_round && transactions[i][9]=="sell"){
-                    sells.push([transactions[i][2],transactions[i][7]]);
-                }
-            }
-        }
-    }
 
     function set_yaxis_limits(hist_round){
         period_offers = [];
@@ -214,7 +203,10 @@
         min_transactions = Math.min.apply(Math,period_transactions);
         max_y = Math.max(buyers_data[hist_round-1][1][1], max_offers, max_transactions) + 5;
         min_y = Math.max(Math.min(sellers_data[hist_round-1][1][1], min_offers, min_transactions) - 5,0);
+
+        console.log('min_y: ', min_y, ', max_y: ', max_y);
     }
+
 
     function set_eq(hist_round){
         for (var i = 0; i < buyers_data[hist_round-1].length; i++){
@@ -223,88 +215,150 @@
             eq_p_l = buyers_data[hist_round-1][i+1][1];
             eq_p_h = sellers_data[hist_round-1][i+1][1];
         }
+
+        console.log('eq_p_l-eq_p_h: ', eq_p_l, '-', eq_p_h, ', eq_q: ', eq_q);
     }
 
-    function reset_hist_nav_buttons(){
-        hist_text.innerHTML = "Period " + hist_round;
-        // In the first period, the go to 'First' and 'Previous' period buttons are disabled
-        $("#btn-first").attr('disabled', true);
-        $("#btn-prev").attr('disabled', true);
-        $("#btn-next").attr('disabled', false);
-        $("#btn-last").attr('disabled', false);
+
+    function prepare_offers_data(hist_round){
+        bids=[];
+        asks=[];
+        if (offers != []){
+            for (var i = 0; i < offers.length; i++){
+                if (offers[i][0]==hist_round && offers[i][5]=="bid"){
+                    bids.push([offers[i][2],offers[i][6]]);
+                }
+                if (offers[i][0]==hist_round && offers[i][5]=="ask"){
+                    asks.push([offers[i][2],offers[i][6]]);
+                }
+            }
+        }
+
+        console.log('bids: ', bids);
+        console.log('asks: ', asks);
     }
 
-    $("#btn-first").on('click', function(e){
-        hist_round = 1;
-        hist_text.innerHTML = "Period " + hist_round;
-        set_yaxis_limits(hist_round);
-        set_eq(hist_round);
-        prepare_offers_data(hist_round);
-        prepare_transaction_data(hist_round);
-        draw_graph(hist_round);
-        populate_sub_info_table(hist_round);
-        populate_period_sum_table(hist_round);
-        upd_pred_eq_box();
-        $("#btn-first").attr('disabled', true);
-        $("#btn-prev").attr('disabled', true);
-        $("#btn-next").attr('disabled', false);
-        $("#btn-last").attr('disabled', false);
-    });
 
-    $("#btn-prev").on('click', function(e){
-        $("#btn-next").attr('disabled', false);
-        $("#btn-last").attr('disabled', false);
-        hist_round = hist_round - 1;
-        hist_text.innerHTML = "Period " + hist_round;
-        set_yaxis_limits(hist_round);
-        set_eq(hist_round);
-        prepare_offers_data(hist_round);
-        prepare_transaction_data(hist_round);
-        populate_sub_info_table(hist_round);
-        populate_period_sum_table(hist_round);
-        upd_pred_eq_box();
-        draw_graph(hist_round);
-        if (hist_round == 1){
-            $("#btn-first").attr('disabled', true);
-            $("#btn-prev").attr('disabled', true);
+    function prepare_transaction_data(hist_round){
+        buys=[];
+        sells=[];
+        if (transactions != []){
+            for (var i = 0; i < transactions.length; i++){
+                if (transactions[i][0]==hist_round && transactions[i][9]=="buy"){
+                    buys.push([transactions[i][2],transactions[i][7]]);
+                }
+                if (transactions[i][0]==hist_round && transactions[i][9]=="sell"){
+                    sells.push([transactions[i][2],transactions[i][7]]);
+                }
+            }
         }
-    });
 
-    $("#btn-next").on('click', function(e){
-        $("#btn-prev").attr('disabled', false);
-        $("#btn-first").attr('disabled', false);
-        hist_round = hist_round + 1;
-        hist_text.innerHTML = "Period " + hist_round;
-        set_yaxis_limits(hist_round);
-        set_eq(hist_round);
-        prepare_offers_data(hist_round);
-        prepare_transaction_data(hist_round);
-        populate_sub_info_table(hist_round);
-        populate_period_sum_table(hist_round);
-        upd_pred_eq_box();
-        draw_graph(hist_round);
-        if (hist_round == total_rounds){
-            $("#btn-next").attr('disabled', true);
-            $("#btn-last").attr('disabled', true);
+        console.log('buys: ', buys);
+        console.log('sells: ', sells);
+    }
+
+
+    function populate_sub_info_table(hist_round){
+        $("#sub_info_table tr").remove();
+        let txt_header = "";
+        txt_header += "<tr>";
+        txt_header += "<th style='text-align:center;'>Subject ID</th>"
+        txt_header += "<th style='text-align:center;'>Role</th>"
+        txt_header += "<th style='text-align:center;'>Units Endowed</th>"
+        txt_header += "<th style='text-align:center;'>Units Traded</th>"
+        txt_header += "<th style='text-align:center;'>Period Payoff</th>"
+        txt_header += "<th style='text-align:center;'>Cumulative Payoff</th>"
+        txt_header += "</tr>"
+        $('#sub_info_table thead').append(txt_header);
+
+        let txt_row = "";
+        for (var i = 0; i < players_data.length; i++){
+            if (players_data[i][2]==hist_round){
+                txt_row += "<tr>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + players_data[i][0] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + players_data[i][1] + "</td>";
+                units_endowed = 0;
+                units_traded = 0;
+                for (var j = 0; j < players_data[i][3].length; j++){
+                    units_endowed += Number(players_data[i][3][j][1]) // Adds up the values in the endowed units cells (index # 1) inside the nested players data list (index # 3) for each player for the given period
+                    units_traded += Number(players_data[i][3][j][2]) // Adds up the values in the traded units cells (index # 2) inside the nested players data list (index # 3) for each player for the given period
+                }
+                session_payoff = 0;
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + units_endowed + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + units_traded + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(players_data[i][4]).toFixed(2) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(players_data[i][5]).toFixed(2) + "</exp>" + "</td>";
+                txt_row += "</tr>";
+            }
         }
-    });
+        $('#sub_info tbody').append(txt_row);
+    }
 
-    $("#btn-last").on('click', function(e){
-        hist_round = total_rounds;
-        hist_text.innerHTML = "Period " + hist_round;
-        set_yaxis_limits(hist_round);
-        set_eq(hist_round);
-        prepare_offers_data(hist_round);
-        prepare_transaction_data(hist_round);
-        populate_sub_info_table(hist_round);
-        populate_period_sum_table(hist_round);
-        upd_pred_eq_box();
-        draw_graph(hist_round);
-        $("#btn-first").attr('disabled', false);
-        $("#btn-prev").attr('disabled', false);
-        $("#btn-next").attr('disabled', true);
-        $("#btn-last").attr('disabled', true);
-    });
+
+    function populate_period_sum_table(hist_round){
+        let events = [];
+
+        if (offers != []){
+            for (var i = 0; i < offers.length; i++){
+                if (offers[i][0]==hist_round){
+                    events.push([offers[i][1], offers[i][3], offers[i][5], offers[i][6], offers[i][7], ""])
+                }
+            }
+        }
+
+        if (transactions != []){
+            for (var i = 0; i < transactions.length; i++){
+                if (transactions[i][0]==hist_round){
+                    if (transactions[i][9]=='ask' || transactions[i][9]=='sell'){
+                        events.push([transactions[i][1], transactions[i][5], transactions[i][9], transactions[i][7], transactions[i][8], transactions[i][3]])
+                    } else {
+                        events.push([transactions[i][1], transactions[i][3], transactions[i][9], transactions[i][7], transactions[i][8], transactions[i][5]])
+                    }
+                }
+            }
+        }
+
+        // The following two lines are used to sort the 'events' list by 'Time Left' (highest to lowest)
+        const dateFromStr = str => new Date('1970/01/01 ' + str);
+        events = events.sort((a, b) => dateFromStr(b[0]) - dateFromStr(a[0]));
+
+        console.log(events);
+
+        $("#period_sum_table tr").remove(); // in case redrawing table
+        let txt_header = "";
+        txt_header += "<tr>";
+        txt_header += "<th style='text-align:center;'>Time Left</th>"
+        txt_header += "<th style='text-align:center;'>Subject ID</th>"
+        txt_header += "<th style='text-align:center;'>Action</th>"
+        txt_header += "<th style='text-align:center;'>Price</th>"
+        txt_header += "<th style='text-align:center;'>Quantity</th>"
+        txt_header += "<th style='text-align:center;'>Trade With</th>"
+        txt_header += "</tr>"
+        $('#period_sum_table thead').append(txt_header);
+
+        let txt_row = "";
+        for (var i = 0; i < events.length; i++){
+            txt_row += "<tr>";
+            if (i > 0 && events[i][0]==events[i-1][0] && events[i][1]==events[i-1][1] && events[i][2]==events[i-1][2]) { // If a transaction is carried out immediately after a bid(ask) is above(below) the lowest(highest) ask(bid) price in the queue, then there is no need to replicate the information in some cells from the row immediately above
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(events[i][3]).toFixed(2) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][4] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][5] + "</td>";
+            } else {
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][0] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][1] + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][2] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(events[i][3]).toFixed(2) + "</exp>" + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][4] + "</td>";
+                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][5] + "</td>";
+            }
+            txt_row += "</tr>";
+        }
+        $('#period_sum_table tbody').append(txt_row);
+    }
+
 
     function upd_pred_eq_box(){
         pred_eq_box.innerHTML  = '<b>' + 'PREDICTED EQUILIBRIUM' + '</b>' + '<br>' +
@@ -312,34 +366,39 @@
         '<b>' + 'Quantity: ' + '</b>' + eq_q;
     }
 
+
     function draw_graph(hist_round){
+        // updates graph description by stating equilibrium price range and equilibrium quantity (currently hidden as the 'pred_eq_box' displays the same information)
         description.innerHTML = "<p>" + "The predicted equilibrium quantity is " + eq_q + "." + "</p>" +
         "<p>" + "The predicted equilibrium price range is between ECU " + Number(eq_p_l).toFixed(2) + " and ECU " + Number(eq_p_h).toFixed(2) + "." + "</p>";
 
-        // Define a custom symbol path
-        Highcharts.SVGRenderer.prototype.symbols.cross = function (x, y, w, h) {
-            return ['M', x, y, 'L', x + w, y + h, 'M', x + w, y, 'L', x, y + h, 'z'];
+        // Defines a custom symbol path which looks like a right side up 'T' which will be used to represent sales
+        Highcharts.SVGRenderer.prototype.symbols.rightside_up_t = function (x, y, w, h) {
+            return ['M', x, y, 'L', x + w, y, 'M', x + w/2, y, 'L', x + w/2, y + h/2, 'z'];
         };
         if (Highcharts.VMLRenderer) {
-            Highcharts.VMLRenderer.prototype.symbols.cross = Highcharts.SVGRenderer.prototype.symbols.cross;
+            Highcharts.VMLRenderer.prototype.symbols.rightside_up_t = Highcharts.SVGRenderer.prototype.symbols.rightside_up_t;
         }
 
-        Highcharts.SVGRenderer.prototype.symbols.plus = function (x, y, w, h) {
-            return ['M', x, y + h / 2, 'L', x + w, y + h / 2, 'M', x + w / 2, y, 'L', x + w / 2, y + h, 'z'];
+        // Defines a custom symbol path which looks like an upside down 'T' which will be used to represent purchases
+        Highcharts.SVGRenderer.prototype.symbols.upside_down_t = function (x, y, w, h) {
+            return ['M', x, y + h, 'L', x + w, y + h, 'M', x + w/2, y + h, 'L', x + w/2, y + h/2, 'z'];
         };
         if (Highcharts.VMLRenderer) {
-            Highcharts.VMLRenderer.prototype.symbols.plus = Highcharts.SVGRenderer.prototype.symbols.plus;
+            Highcharts.VMLRenderer.prototype.symbols.upside_down_t = Highcharts.SVGRenderer.prototype.symbols.upside_down_t;
         }
 
+        // Defines a custom symbol path which looks like a right side up '^' which will be used to represent bids
         Highcharts.SVGRenderer.prototype.symbols.up = function (x, y, w, h) {
-            return ['M', x, y + h, 'L', x + w/2, y, 'M', x + w/2, y, 'L', x + w, y+h,'z'];
+            return ['M', x, y + h, 'L', x + w/2, y + h/2, 'M', x + w/2, y + h/2, 'L', x + w, y + h,'z'];
         };
         if (Highcharts.VMLRenderer) {
             Highcharts.VMLRenderer.prototype.symbols.up = Highcharts.SVGRenderer.prototype.symbols.up;
         }
 
+        // Defines a custom symbol path which looks like an upside down '^' which will be used to represent asks
         Highcharts.SVGRenderer.prototype.symbols.down = function (x, y, w, h) {
-            return ['M', x, y, 'L', x + w/2, y+h, 'M', x + w/2, y+h, 'L', x + w, y,'z'];
+            return ['M', x, y, 'L', x + w/2, y + h/2, 'M', x + w/2, y + h/2, 'L', x + w, y,'z'];
         };
         if (Highcharts.VMLRenderer) {
             Highcharts.VMLRenderer.prototype.symbols.down = Highcharts.SVGRenderer.prototype.symbols.down;
@@ -396,27 +455,27 @@
                 series: [{
                     name: "Demand Curve",
                     data: buyers_data[hist_round-1],
-                    color:'#172F3A',
+                    color:'#300505',
                     step:true,
                     zIndex: 1,
                 },
                 {
                     name: "Supply Curve",
                     data: sellers_data[hist_round-1],
-                    color:'#C81010',
+                    color:'#28aeb8',
                     step:true,
                     zIndex: 2,
                 },
                 {
                     name: 'Bid',
                     data: bids,
-                    color: '#1C9506',
+                    color: '#3c9c13',
                     marker: {
                         enabled:true,
                         symbol: "up",
-                        radius: 4,
+                        radius: 5,
                         lineWidth: 2,
-                        lineColor: '#1C9506',
+                        lineColor: '#3c9c13',
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
@@ -425,13 +484,13 @@
                 {
                     name: 'Ask',
                     data: asks,
-                    color: '#DC9314',
+                    color: '#cc8604',
                     marker: {
                         enabled:true,
                         symbol: "down",
-                        radius: 4,
+                        radius: 5,
                         lineWidth: 2,
-                        lineColor: '#DC9314',
+                        lineColor: '#cc8604',
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
@@ -440,13 +499,13 @@
                 {
                     name: 'Buy',
                     data: buys,
-                    color: '#269AD1',
+                    color: '#281ccf',
                     marker: {
                         enabled:true,
-                        symbol: "plus",
-                        radius: 4,
+                        symbol: "upside_down_t",
+                        radius: 5,
                         lineWidth: 2,
-                        lineColor: '#269AD1',
+                        lineColor: '#281ccf',
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
@@ -455,13 +514,13 @@
                 {
                     name: 'Sell',
                     data: sells,
-                    color: '#9E31D8',
+                    color: '#d61ec7',
                     marker: {
                         enabled:true,
-                        symbol: "cross",
-                        radius: 4,
+                        symbol: "rightside_up_t",
+                        radius: 5,
                         lineWidth: 2,
-                        lineColor: '#9E31D8',
+                        lineColor: '#d61ec7',
                     },
                     enableMouseTracking: false,
                     type: 'scatter',
@@ -486,105 +545,79 @@
         });
     }
 
-    function populate_period_sum_table(hist_round){
-        let events = [];
 
-        if (offers != []){
-            for (var i = 0; i < offers.length; i++){
-                if (offers[i][0]==hist_round){
-                    events.push([offers[i][1], offers[i][3], offers[i][5], offers[i][6], offers[i][7], ""])
-                }
-            }
+    $("#btn-first").on('click', function(e){
+        hist_round = 1;
+        hist_text.innerHTML = "Period " + hist_round;
+        set_yaxis_limits(hist_round);
+        set_eq(hist_round);
+        prepare_offers_data(hist_round);
+        prepare_transaction_data(hist_round);
+        draw_graph(hist_round);
+        populate_sub_info_table(hist_round);
+        populate_period_sum_table(hist_round);
+        upd_pred_eq_box();
+        $("#btn-first").attr('disabled', true);
+        $("#btn-prev").attr('disabled', true);
+        $("#btn-next").attr('disabled', false);
+        $("#btn-last").attr('disabled', false);
+    });
+
+
+    $("#btn-prev").on('click', function(e){
+        $("#btn-next").attr('disabled', false);
+        $("#btn-last").attr('disabled', false);
+        hist_round = hist_round - 1;
+        hist_text.innerHTML = "Period " + hist_round;
+        set_yaxis_limits(hist_round);
+        set_eq(hist_round);
+        prepare_offers_data(hist_round);
+        prepare_transaction_data(hist_round);
+        populate_sub_info_table(hist_round);
+        populate_period_sum_table(hist_round);
+        upd_pred_eq_box();
+        draw_graph(hist_round);
+        if (hist_round == 1){
+            $("#btn-first").attr('disabled', true);
+            $("#btn-prev").attr('disabled', true);
         }
+    });
 
-        if (transactions != []){
-            for (var i = 0; i < transactions.length; i++){
-                if (transactions[i][0]==hist_round){
-                    if (transactions[i][9]=='ask' || transactions[i][9]=='sell'){
-                        events.push([transactions[i][1], transactions[i][5], transactions[i][9], transactions[i][7], transactions[i][8], transactions[i][3]])
-                    } else {
-                        events.push([transactions[i][1], transactions[i][3], transactions[i][9], transactions[i][7], transactions[i][8], transactions[i][5]])
-                    }
-                }
-            }
+
+    $("#btn-next").on('click', function(e){
+        $("#btn-prev").attr('disabled', false);
+        $("#btn-first").attr('disabled', false);
+        hist_round = hist_round + 1;
+        hist_text.innerHTML = "Period " + hist_round;
+        set_yaxis_limits(hist_round);
+        set_eq(hist_round);
+        prepare_offers_data(hist_round);
+        prepare_transaction_data(hist_round);
+        populate_sub_info_table(hist_round);
+        populate_period_sum_table(hist_round);
+        upd_pred_eq_box();
+        draw_graph(hist_round);
+        if (hist_round == total_rounds){
+            $("#btn-next").attr('disabled', true);
+            $("#btn-last").attr('disabled', true);
         }
-
-        const dateFromStr = str => new Date('1970/01/01 ' + str);
-        events = events.sort((a, b) => dateFromStr(b[0]) - dateFromStr(a[0]));
-
-        console.log(events);
+    });
 
 
-        $("#period_sum_table tr").remove(); // in case redrawing table
-        let txt_header = "";
-        txt_header += "<tr>";
-        txt_header += "<th style='text-align:center;'>Time Left</th>"
-        txt_header += "<th style='text-align:center;'>Subject ID</th>"
-        txt_header += "<th style='text-align:center;'>Action</th>"
-        txt_header += "<th style='text-align:center;'>Price</th>"
-        txt_header += "<th style='text-align:center;'>Quantity</th>"
-        txt_header += "<th style='text-align:center;'>Trade With</th>"
-        txt_header += "</tr>"
-        $('#period_sum_table thead').append(txt_header);
-
-        let txt_row = "";
-        for (var i = 0; i < events.length; i++){
-            txt_row += "<tr>";
-            if (i > 0 && events[i][0]==events[i-1][0] && events[i][1]==events[i-1][1] && events[i][2]==events[i-1][2]) {
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</exp>" + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "" + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(events[i][3]).toFixed(2) + "</exp>" + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][4] + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][5] + "</td>";
-            } else {
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][0] + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][1] + "</exp>" + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][2] + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(events[i][3]).toFixed(2) + "</exp>" + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][4] + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + events[i][5] + "</td>";
-            }
-            txt_row += "</tr>";
-        }
-        $('#period_sum_table tbody').append(txt_row);
-    }
-
-    function populate_sub_info_table(hist_round){
-        $("#sub_info_table tr").remove(); // in case redrawing table
-        let txt_header = "";
-        txt_header += "<tr>";
-        txt_header += "<th style='text-align:center;'>Subject ID</th>"
-        txt_header += "<th style='text-align:center;'>Role</th>"
-        txt_header += "<th style='text-align:center;'>Units Endowed</th>"
-        txt_header += "<th style='text-align:center;'>Units Traded</th>"
-        txt_header += "<th style='text-align:center;'>Period Payoff</th>"
-        txt_header += "<th style='text-align:center;'>Cumulative Payoff</th>"
-        txt_header += "</tr>"
-        $('#sub_info_table thead').append(txt_header);
-
-        let txt_row = "";
-        for (var i = 0; i < players_data.length; i++){
-            if (players_data[i][2]==hist_round){
-                txt_row += "<tr>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + players_data[i][0] + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + players_data[i][1] + "</td>";
-                units_endowed = 0;
-                units_traded = 0;
-                for (var j = 0; j < players_data[i][3].length; j++){
-                    units_endowed += Number(players_data[i][3][j][1])
-                    units_traded += Number(players_data[i][3][j][2])
-                }
-                session_payoff = 0;
-                /*for (var j = 0; j < players_data.length; i++){
-                }*/
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + units_endowed + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + units_traded + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(players_data[i][4]).toFixed(2) + "</exp>" + "</td>";
-                txt_row += "<td style='vertical-align:middle;text-align:center;'>" + "<exp>" + Number(players_data[i][5]).toFixed(2) + "</exp>" + "</td>";
-                txt_row += "</tr>";
-            }
-        }
-        $('#sub_info tbody').append(txt_row);
-    }
+    $("#btn-last").on('click', function(e){
+        hist_round = total_rounds;
+        hist_text.innerHTML = "Period " + hist_round;
+        set_yaxis_limits(hist_round);
+        set_eq(hist_round);
+        prepare_offers_data(hist_round);
+        prepare_transaction_data(hist_round);
+        populate_sub_info_table(hist_round);
+        populate_period_sum_table(hist_round);
+        upd_pred_eq_box();
+        draw_graph(hist_round);
+        $("#btn-first").attr('disabled', false);
+        $("#btn-prev").attr('disabled', false);
+        $("#btn-next").attr('disabled', true);
+        $("#btn-last").attr('disabled', true);
+    });
 </script>

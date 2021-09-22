@@ -119,8 +119,8 @@ def vars_for_admin_report(subsession):
         for i in range(subsession.session.total_rounds):
             sellers_data[i].append([0, 0])
             sellers_data[i].sort(key=lambda x: x[1])
-            sellers_data[i][2 * subsession.session.num_induc_val_steps + 1][1] = 1000
-            buyers_data[i].append([0, 1000])
+            sellers_data[i][2 * subsession.session.num_induc_val_steps + 1][1] = 100000000000000000000000000000000000
+            buyers_data[i].append([0, 100000000000000000000000000000000000])
             buyers_data[i].sort(key=lambda x: x[1], reverse=True)
             buyers_data[i][2 * subsession.session.num_induc_val_steps + 1][1] = 0
 
@@ -198,8 +198,8 @@ def vars_for_admin_report(subsession):
         for i in range(subsession.session.total_rounds):
             sellers_data[i].append([0, 0])
             sellers_data[i].sort(key=lambda x: x[1])
-            sellers_data[i][subsession.session.num_induc_val_steps + 1][1] = 1000
-            buyers_data[i].append([0, 1000])
+            sellers_data[i][subsession.session.num_induc_val_steps + 1][1] = 100000000000000000000000000000000000
+            buyers_data[i].append([0, 100000000000000000000000000000000000])
             buyers_data[i].sort(key=lambda x: x[1], reverse=True)
             buyers_data[i][subsession.session.num_induc_val_steps + 1][1] = 0
 
