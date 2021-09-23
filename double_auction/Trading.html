@@ -3,28 +3,26 @@
 {{ endblock }}
 
 
-
-
 {{ block content }}
     <!-- Linking jQuery -->
     <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
     <!-- Bootstrap Font Icon CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
 
+
     <div class="container">
         <div class="row">
             <div class="col-6" style="border: 1px solid grey;">
                 <p>
-                    <span id="basic_info"></span> <!-- This market is trading widgets text -->
+                    <span id="basic_info"></span> <!-- "This market is trading widgets..." text -->
                 </p>
             </div>
-            <div class="col-6" style="border: 1px solid grey;"> <!-- Period, time remaining, and earning details -->
-                <table id="info_table" class="table table-sm table-borderless">
+            <div class="col-6" style="border: 1px solid grey;">
+                <table id="info_table" class="table table-sm table-borderless"> <!-- Period, time remaining, and earning details -->
                     <tbody>
                     <tr>
                         <td style="vertical-align:middle;text-align:left;"><span id="period"></span></td>
@@ -88,7 +86,7 @@
                 </div>
             </div>
             <div class="col-5" style="border: 1px solid grey;"><!-- Period nav buttons and period summary column -->
-                <div class="row" style="vertical-align:middle;align-items:left;">
+                <div class="row" style="vertical-align:middle;align-items:left;"> <!-- Period nav buttons row -->
                     <div class="col-1" style="border: none;">
                         <button class="btn-sm btn-primary" type="button" id="btn-first"><i class="bi-chevron-double-left"></i></button>
                     </div>
@@ -158,13 +156,12 @@
     </div>
 
 
-
-
     <style>
         .otree-timer {
             display: none;
         }
 
+        //Can be used to hide debug information and all other 'card' divs when testing the application locally
         /*.card {
             display: none;
         }*/
@@ -224,172 +221,39 @@
 
 
     <script>
-        let my_id = js_vars.id_in_group; //the id of the player
+        let my_id = js_vars.id_in_group; //The ID of the player
         let is_buyer = js_vars.is_buyer; //'True' if the player is a buyer, 'False' otherwise
-        let this_round = js_vars.cur_round; //the current round/period
-        let total_rounds = js_vars.total_rounds; //the total number of rounds/periods in the experiment
-        let upd_ind = js_vars.inducement; //stores the player's inducements and all of the other relevant data
+        let this_round = js_vars.cur_round; //The current round/period
+        let total_rounds = js_vars.total_rounds; //The total number of rounds/periods in the experiment
+        let upd_ind = js_vars.inducement; //Stores the player's inducements and all of the other relevant data for the experiment
 
-        let upd_bids = []; //stores the frequency list of outstanding bids
-        let upd_asks = []; //stores the frequency list of outstanding asks
-        let ticker_data = []; //stores the list of completed transactions
+        let upd_bids = []; //Stores the frequency list of outstanding bids
+        let upd_asks = []; //Stores the frequency list of outstanding asks
+        let ticker_data = []; //Stores the list of completed transactions
 
-        let period_earnings = 0; //score in the current period/round
-        let session_earnings = js_vars.session_payoff; //cumulative score
-        let multi_unit_trading = js_vars.multiple_unit_trading; //picks up whether the experiment is configured to allow multi-unit trading
-        let rel_price_imp = js_vars.relative_price_imp; //picks up whether the experiment is configured to have price improvement relative to 'self' or 'all'
+        let period_earnings = 0; //Payoff in the current period/round
+        let session_earnings = js_vars.session_payoff; //Cumulative payoff (up till and inclusive of the current period)
+        let multi_unit_trading = js_vars.multiple_unit_trading; //Picks up whether the experiment is configured to allow multi-unit trading
+        let rel_price_imp = js_vars.relative_price_imp; //Picks up whether the experiment is configured to have price improvement relative to 'self' or 'all'
 
-        let my_offer = document.getElementById('my_offer'); //the input box for the limit order offer (i.e. ask/bid price)
-        let my_quant1 = document.getElementById('my_quant1'); //the input box for the limit order quantity
-        let my_quant2 = document.getElementById('my_quant2'); //the input box for the market order quantity
-        let comp_trades = document.getElementById('comp_trades'); //the div where the completed trades ticker resides
+        let my_offer = document.getElementById('my_offer'); //The input box for the limit order offer (i.e. ask/bid price)
+        let my_quant1 = document.getElementById('my_quant1'); //The input box for the limit order quantity
+        let my_quant2 = document.getElementById('my_quant2'); //The input box for the market order quantity
+        let comp_trades = document.getElementById('comp_trades'); //The div where the completed trades ticker resides
 
-        let outstanding_offer = 0; //the existing bid/ask
-        let outstanding_quant = 0; //unit(s) wanted/offered at the existing bid/ask
+        let outstanding_offer = 0; //The outstanding bid/ask price submitted by the player for a yet to be fully cleared limit order (0 if the limit order is cleared)
+        let outstanding_quant = 0; //Unit(s) wanted/offered at the outstanding offer
 
-        let error_1 = document.getElementById('error_1'); //the div where the error message pops up when the user makes an attempt to place an invalid limit order
-        let error_2 = document.getElementById('error_2'); //the div where the error message pops up when the user makes an attempt to place an invalid market order
+        let offer_c = 0; //If price improvement is relative to 'self' then this stores the outstanding offer by the player, otherwise it stores the maximum outstanding bid or the minimum outstanding ask of all players (depending on the given player's role)
 
-        event_messages = document.getElementById('event_messages'); //the div which is populated by messages
-        hist_text = document.getElementById('hist_text');  //the caption of the summary table (e.g., Period 1 Summary)
+        let error_1 = document.getElementById('error_1'); //The div where the error message pops up when the user makes an attempt to place an invalid limit order
+        let error_2 = document.getElementById('error_2'); //The div where the error message pops up when the user makes an attempt to place an invalid market order
 
-        let offer_c = 0;
-        let quant_c = 0;
-
-
-        $("#my_quant1").on('keydown keyup change', function(e){
-            var max_quant1 = update_quant1(upd_ind);
-            console.log("#my_quant1 - max_quant1: ", max_quant1);
-            if ($(this).val() > max_quant1 && e.keyCode !== 46 && e.keyCode !== 8){
-               e.preventDefault();
-               $(this).val("");
-
-            error_1.innerHTML = "You cannot " + ((is_buyer) ? ("bid for ") : ("ask for ")) + ((max_quant1==0) ? ("any units.") : ("more than " + max_quant1 + " units.")) ;
-            $('#error_1').addClass('fading');
-
-            setTimeout(function() {
-                $('#error_1').removeClass('fading');
-            }, 1000);
-
-            setTimeout(function() {
-                error_1.innerHTML = "";
-            }, 3500);
-            }
-        });
+        event_messages = document.getElementById('event_messages'); //The div which is populated by messages
+        hist_text = document.getElementById('hist_text');  //The caption of the summary table (e.g., "Period 1 Summary")
 
 
-        $("#my_quant2").on('keydown keyup change', function(e){
-            var max_quant2 = update_quant2(upd_ind);
-            console.log("#my_quant2 - max_quant2: ", max_quant2);
-            if ($(this).val() > max_quant2 && e.keyCode !== 46 && e.keyCode !== 8){
-               e.preventDefault();
-               $(this).val("");
-
-                error_2.innerHTML = "You cannot " + ((is_buyer) ? ("buy ") : ("sell ")) + ((max_quant2==0) ? ("any units at this moment.") : ("more than " + max_quant2 + " units at this moment.")) ;
-                $('#error_2').addClass('fading');
-
-                setTimeout(function() {
-                    $('#error_2').removeClass('fading');
-                }, 1000);
-
-                setTimeout(function() {
-                    error_2.innerHTML = "";
-                }, 3500);
-            }
-        });
-
-
-        $("#btn-lim-order").on('click', function(e){
-            console.log("#btn-lim-order - my_offer.value: ", Number.parseFloat(my_offer.value));
-            console.log("#btn-lim-order - offer_c: ", Number.parseFloat(offer_c));
-            if(is_buyer){
-                if (Number.parseFloat(my_offer.value) < Number.parseFloat(offer_c)){
-                    my_offer.value = "";
-                    my_quant1.value = "";
-                    $("#btn-lim-order").attr('disabled', true);
-                    error_1.innerHTML = "Your bid price has to be greater than " + Number(offer_c).toFixed(2) + "." ;
-                    $('#error_1').addClass('fading');
-
-                    setTimeout(function() {
-                        $('#error_1').removeClass('fading');
-                    }, 1000);
-
-                    setTimeout(function() {
-                        error_1.innerHTML = "";
-                    }, 3500);
-                } else {
-                    limitOrder(Number.parseFloat(my_offer.value), Number.parseInt(my_quant1.value));
-                    console.log("#btn-lim-order - outstanding_offer: ", outstanding_offer);
-                    console.log("#btn-lim-order - outstanding_quant: ", outstanding_quant);
-                    outstanding_offer = Number.parseFloat(my_offer.value);
-                    outstanding_quant = Number.parseInt(my_quant1.value);
-                    update_offer_table(Number.parseFloat(my_offer.value),Number.parseInt(my_quant1.value));
-                    my_quant1.value = "";
-                    my_offer.value = "";
-                    var max_quant1 = update_quant1(upd_ind);
-                    console.log("#btn-lim-order - max_quant1: ", max_quant1);
-                    $("#btn-lim-order").attr('disabled', true);
-                }
-            } else {
-                if (Number.parseFloat(offer_c)!=0 && Number.parseFloat(my_offer.value) > Number.parseFloat(offer_c)){
-                    my_offer.value = "";
-                    my_quant1.value = "";
-                    $("#btn-lim-order").attr('disabled', true);
-                    error_1.innerHTML = "Your ask price has to be less than " + Number(offer_c).toFixed(2) + "." ;
-                    $('#error_1').addClass('fading');
-
-                    setTimeout(function() {
-                        $('#error_1').removeClass('fading');
-                    }, 1000);
-
-                    setTimeout(function() {
-                        error_1.innerHTML = "";
-                    }, 3500);
-                } else {
-                    limitOrder(Number.parseFloat(my_offer.value), Number.parseInt(my_quant1.value));
-                    outstanding_offer = Number.parseFloat(my_offer.value);
-                    outstanding_quant = Number.parseInt(my_quant1.value);
-                    console.log("#btn-lim-order - outstanding_offer: ", outstanding_offer);
-                    console.log("#btn-lim-order - outstanding_quant: ", outstanding_quant);
-                    update_offer_table(Number.parseFloat(my_offer.value),Number.parseInt(my_quant1.value));
-                    my_quant1.value = "";
-                    my_offer.value = "";
-                    var max_quant1 = update_quant1(upd_ind);
-                    console.log("#btn-lim-order - max_quant1: ", max_quant1);
-                    $("#btn-lim-order").attr('disabled', true);
-                }
-            }
-            multi_unit_trading_check();
-        });
-
-
-        $("#btn-mkt-order").on('click', function(e){
-            var max_quant2 = update_quant2(upd_ind);
-            console.log("#btn-mkt-order - max_quant2: ", max_quant2);
-            $("#btn-mkt-order").attr('disabled', true);
-            marketOrder(Number.parseInt(my_quant2.value));
-            my_quant2.value = "";
-            multi_unit_trading_check();
-        });
-
-
-        document.addEventListener("keyup", function(event) {
-            setTimeout(function() {
-                if (Number.parseInt(my_quant1.value) > 0 && Number.parseFloat(my_offer.value) > 0){
-                    $("#btn-lim-order").attr('disabled', false);
-                } else {
-                    $("#btn-lim-order").attr('disabled', true);
-                }
-                if (Number.parseInt(my_quant2.value) > 0) {
-                    $("#btn-mkt-order").attr('disabled', false);
-                } else {
-                    $("#btn-mkt-order").attr('disabled', true);
-                }
-            }, 0);
-        });
-
-
-        window.onbeforeunload = function() {
+        window.onbeforeunload = function() { //This function stores the data being displayed on screen (and data in background used to generate it) in web browser's storage so that the page can be repopulated with it upon page refresh by the player (NOTE: This won't work if the browser window was closed and the link was reloaded)
             sessionStorage.setItem("bids", JSON.stringify(upd_bids));
             sessionStorage.setItem("asks", JSON.stringify(upd_asks));
             sessionStorage.setItem("messages", JSON.stringify(event_messages.innerHTML));
@@ -398,7 +262,6 @@
             sessionStorage.setItem("quant1", JSON.stringify(my_quant1.value));
             sessionStorage.setItem("quant2", JSON.stringify(my_quant2.value));
             sessionStorage.setItem("offer_c", JSON.stringify(offer_c));
-            sessionStorage.setItem("quant_c", JSON.stringify(quant_c));
             sessionStorage.setItem("cur_round", JSON.stringify(this_round));
             sessionStorage.setItem("period_earnings", JSON.stringify(period_earnings));
             sessionStorage.setItem("session_earnings", JSON.stringify(session_earnings));
@@ -409,22 +272,22 @@
 
 
         window.onload = function () {
-            check_for_refresh();
-            hist_round = this_round
-            set_things_up();
+            check_for_refresh(); //Checks whether the Trading page is refreshed during a round (by the player) or if it is being refreshed due to the beginning of a new round
+            hist_round = this_round //This variable is used to cycle through the summary table for different rounds (defaults to the current round on page load/refresh)
+            set_things_up(); //Prepares all of the data to be presented to the player on the screen and displays it
         }
 
 
         function check_for_refresh(){
-            if(this_round != JSON.parse(sessionStorage.getItem("cur_round"))){
+            if(this_round != JSON.parse(sessionStorage.getItem("cur_round"))){ //If the page refresh happens due to a new round, then remove stored items from the previous round
                 sessionStorage.removeItem("bids");
                 sessionStorage.removeItem("asks");
                 sessionStorage.removeItem("messages");
+                sessionStorage.removeItem("inducements");
                 sessionStorage.removeItem("offer");
                 sessionStorage.removeItem("quant1");
                 sessionStorage.removeItem("quant2");
                 sessionStorage.removeItem("offer_c");
-                sessionStorage.removeItem("quant_c");
                 sessionStorage.removeItem("period_earnings");
                 sessionStorage.removeItem("session_earnings");
                 sessionStorage.removeItem("ticker_data");
@@ -435,57 +298,38 @@
 
 
         function set_things_up(){
-            reset_hist_nav_buttons();
-            show_info();
-            create_offer_table();
-            update_quant1(upd_ind);
-            update_quant2(upd_ind);
+            reset_hist_nav_buttons(); //Resets the enabled/disabled property of the navigation buttons given the current round (e.g., the go to 'previous' and 'last' round buttons are disabled if current round is 1) and also updates the caption of the summary table accordingly
 
             $("#btn-lim-order").attr('disabled', true);
             $("#btn-mkt-order").attr('disabled', true);
 
-            recall_dom_elements();
+            show_info(); //Shows the text on top left which informs the player about his/her role, shows the period number, time left, and earnings information, and sets various labels/captions according to the player's role
+            recall_elements(); //Retrieves the data from browser's storage
+            create_offer_table(); //Shows the header of the the offer table (situated in the middle column under the 'Buyer/Seller Actions' div)
+            pop_comp_trades_ticker(ticker_data,this_round); //Populates the 'Completed Trades' ticker with completed trades (if any)
 
-            pop_comp_trades_ticker(ticker_data,this_round);
-
-            if (upd_bids !== [] || upd_asks !== []){
-                populate_bid_ask_table(upd_bids, upd_asks);
-                populate_best_bid_ask_table(upd_bids, upd_asks);
+            if (upd_bids !== [] || upd_asks !== []){ //If there have been any bids or asks, then populate the bid and ask tables displayed under the 'Queues' heading and also populate the best bid and ask table under the 'Bid-Ask Spread' heading
+                pop_bid_ask_table(upd_bids, upd_asks);
+                pop_best_bid_ask_table(upd_bids, upd_asks);
             }
 
-            populate_sum_table(this_round,upd_ind);
+            pop_sum_table(this_round,upd_ind); //Populates the period summary table
 
-            if (sessionStorage.getItem("offer_c") !== null && sessionStorage.getItem("quant_c") !== null){
-                update_offer_table(JSON.parse(sessionStorage.getItem("offer_c")),JSON.parse(sessionStorage.getItem("quant_c")));
+            if (sessionStorage.getItem("outstanding_offer") !== null && sessionStorage.getItem("outstanding_quant") !== null){ //If there is any outstanding offer by the player, then update the offer table
+                update_offer_table(Number.parseFloat(JSON.parse(sessionStorage.getItem("outstanding_offer"))),Number.parseInt(JSON.parse(sessionStorage.getItem("outstanding_quant"))));
             }
 
-            if (my_quant1.value !== "" && my_offer.value !== ""){
+            if (my_quant1.value !== "" && my_offer.value !== ""){ //Enables the limit order (Bid/Ask) button if the textboxes for 'Price' and 'Quantity' were non-empty
                 $("#btn-lim-order").attr('disabled', false);
             }
 
-            if (is_buyer && upd_asks !==[] && parseInt(my_quant2.value) > 0){
+            if (is_buyer && upd_asks !==[] && Number.parseInt(my_quant2.value) > 0){ //Enables the market order (Buy/Sell) button if the player is a buyer, there are any outstanding asks in the queue, and there is some positive 'Quantity' in the relevant textbox
                 $("#btn-mkt-order").attr('disabled', false);
-            } else if (!is_buyer && upd_bids !== [] && parseInt(my_quant2.value) > 0){
+            } else if (!is_buyer && upd_bids !== [] && Number.parseInt(my_quant2.value) > 0){ //Enables the market order (Buy/Sell) button if the player is a seller, there are any outstanding bids in the queue, and there is some positive 'Quantity' in the relevant textbox
                 $("#btn-mkt-order").attr('disabled', false);
             }
 
-            multi_unit_trading_check();
-        }
-
-
-        function update_earnings(period_earnings,session_earnings){
-            document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(period_earnings).toFixed(2)
-            document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
-        }
-
-
-        function multi_unit_trading_check(){
-            if (multi_unit_trading == false){
-                my_quant1.value = Math.min(update_quant1(upd_ind),1);
-                my_quant1.disabled = true;
-                my_quant2.value = Math.min(update_quant2(upd_ind),1);
-                my_quant2.disabled = true;
-            }
+            multi_unit_trading_check(); //If multi-unit trading is disabled, then disable the 'Quantity' textboxes for limit and market orders and default the quantities in these to '1' (or to '0' if the player has traded all of the units or if there are no units currently offered for sale/purchase)
         }
 
 
@@ -495,7 +339,7 @@
             if (hist_round > 1){
                 $("#btn-first").attr('disabled', false);
                 $("#btn-prev").attr('disabled', false);
-            } else {
+            } else { //Disable 'first' and 'previous' round buttons as the current round is first
                 $("#btn-first").attr('disabled', true);
                 $("#btn-prev").attr('disabled', true);
             }
@@ -503,75 +347,40 @@
             if (hist_round < this_round){
                 $("#btn-next").attr('disabled', false);
                 $("#btn-last").attr('disabled', false);
-            } else {
+            } else { //Disable 'next' and 'last' round buttons as the current round is last
                 $("#btn-next").attr('disabled', true);
                 $("#btn-last").attr('disabled', true);
             }
         }
-
-
-        $("#btn-first").on('click', function(e){
-            hist_round = 1;
-            hist_text.innerHTML = "Period " + hist_round + " Summary";
-            populate_sum_table(hist_round,upd_ind);
-            $("#btn-first").attr('disabled', true);
-            $("#btn-prev").attr('disabled', true);
-            $("#btn-next").attr('disabled', false);
-            $("#btn-last").attr('disabled', false);
-        });
-
-
-        $("#btn-prev").on('click', function(e){
-            $("#btn-next").attr('disabled', false);
-            $("#btn-last").attr('disabled', false);
-
-            hist_round = hist_round - 1;
-            hist_text.innerHTML = "Period " + hist_round + " Summary";
-            populate_sum_table(hist_round,upd_ind);
-
-            if (hist_round == 1){
-                $("#btn-first").attr('disabled', true);
-                $("#btn-prev").attr('disabled', true);
-            }
-        });
-
-
-        $("#btn-next").on('click', function(e){
-            $("#btn-prev").attr('disabled', false);
-            $("#btn-first").attr('disabled', false);
-
-            hist_round = hist_round + 1;
-            hist_text.innerHTML = "Period " + hist_round + " Summary";
-            populate_sum_table(hist_round,upd_ind);
-
-            if (hist_round == this_round){
-                $("#btn-next").attr('disabled', true);
-                $("#btn-last").attr('disabled', true);
-            }
-        });
-
-
-        $("#btn-last").on('click', function(e){
-            hist_round = this_round;
-            hist_text.innerHTML = "Period " + hist_round + " Summary";
-            populate_sum_table(hist_round,upd_ind);
-            $("#btn-first").attr('disabled', false);
-            $("#btn-prev").attr('disabled', false);
-            $("#btn-next").attr('disabled', true);
-            $("#btn-last").attr('disabled', true);
-        });
 
 
         function show_info(){
             document.getElementById('basic_info').innerHTML = "This market is trading widgets. You are assigned the role of a " + "<b>" +
                 ((is_buyer) ? ("buyer") : ("seller")) + "</b>" + "."
 
-            populate_info_table();
-            populate_actions_div();
+            pop_info_table(); //Shows the period number, time left, and earnings information
+            pop_actions_div(); //Sets various labels/captions according to the player's role
         }
 
 
-        function recall_dom_elements(){
+        function pop_info_table(){
+            document.getElementById('period').innerHTML = "<b>" + "Period " + "</b>" + this_round + "<b>" + " of " + "</b>" + total_rounds
+            document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(period_earnings).toFixed(2)
+            document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
+        }
+
+
+        function pop_actions_div(){
+            document.getElementById('actions_title').innerHTML = ((is_buyer) ? ("Buyer") : ("Seller")) + " Actions"
+            document.getElementById('actions_subtitle').innerHTML = ((is_buyer) ? ("Bids") : ("Asks"))
+            document.getElementById('market_action').innerHTML = "Market " + ((is_buyer) ? ("Buy") : ("Sell"))
+
+            document.getElementById('btn-lim-order').innerHTML = ((is_buyer) ? ("Bid") : ("Ask"))
+            document.getElementById('btn-mkt-order').innerHTML = ((is_buyer) ? ("Buy") : ("Sell"))
+        }
+
+
+        function recall_elements(){
             if (sessionStorage.getItem("bids") !== null){
                 upd_bids = JSON.parse(sessionStorage.getItem("bids"));
             }
@@ -588,16 +397,16 @@
                 upd_ind = JSON.parse(sessionStorage.getItem("inducements"));
             }
 
-            if (sessionStorage.getItem("offer") !== null){
-                my_offer.value = JSON.parse(sessionStorage.getItem("offer"));
+            if (sessionStorage.getItem("offer") !== null && Number(JSON.parse(sessionStorage.getItem("offer"))) > 0){
+                my_offer.value = Number(JSON.parse(sessionStorage.getItem("offer")));
             }
 
-            if (sessionStorage.getItem("quant1") !== null){
-                my_quant1.value = JSON.parse(sessionStorage.getItem("quant1"));
+            if (sessionStorage.getItem("quant1") !== null && Number(JSON.parse(sessionStorage.getItem("quant1"))) > 0){
+                my_quant1.value = Number(JSON.parse(sessionStorage.getItem("quant1")));
             }
 
-            if (sessionStorage.getItem("quant2") !== null){
-                my_quant2.value = JSON.parse(sessionStorage.getItem("quant2"));
+            if (sessionStorage.getItem("quant2") !== null && Number(JSON.parse(sessionStorage.getItem("quant2"))) > 0){
+                my_quant2.value = Number(JSON.parse(sessionStorage.getItem("quant2")));
             }
 
             if (sessionStorage.getItem("period_earnings") !== null){
@@ -610,8 +419,6 @@
 
             if (sessionStorage.getItem("ticker_data") !== null){
                 ticker_data = JSON.parse(sessionStorage.getItem("ticker_data"));
-            } else {
-                ticker_data = [];
             }
 
             if (sessionStorage.getItem("outstanding_offer") !== null){
@@ -624,25 +431,34 @@
         }
 
 
-        function populate_info_table(){
-            document.getElementById('period').innerHTML = "<b>" + "Period " + "</b>" + this_round + "<b>" + " of " + "</b>" + total_rounds
-            document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(0).toFixed(2)
-            document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
+        function create_offer_table(){
+            $("#offer_table tr").remove();
+            let txt_header = "";
+            txt_header += "<tr>";
+            txt_header += "<th style='text-align:center;font-size:100%;'>Price</th>"
+            txt_header += "<th style='text-align:center;font-size:100%;'>Qty</th>"
+            txt_header += "</tr>"
+            $('#offer_table thead').append(txt_header);
         }
 
 
-        function populate_actions_div(){
-            document.getElementById('actions_title').innerHTML = ((is_buyer) ? ("Buyer") : ("Seller")) + " Actions"
-            document.getElementById('actions_subtitle').innerHTML = ((is_buyer) ? ("Bids") : ("Asks"))
-            document.getElementById('market_action').innerHTML = "Market " + ((is_buyer) ? ("Buy") : ("Sell"))
+        function pop_comp_trades_ticker(transactions,this_round){
+            comp_trades.innerHTML = "";
 
-            document.getElementById('btn-lim-order').innerHTML = ((is_buyer) ? ("Bid") : ("Ask"))
-            document.getElementById('btn-mkt-order').innerHTML = ((is_buyer) ? ("Buy") : ("Sell"))
+            if (transactions.length != 0){
+                for (var i = 0; i < transactions.length; i++){
+                    if (transactions[i][0]==this_round){
+                        comp_trades.innerHTML += "&#8192;" + "&#8192;" + ((transactions[i][3] == my_id || transactions[i][5] == my_id) ? ("<tiny>" + "&#128994;" + "</tiny>") : ("")) + " " + transactions[i][8] + ((transactions[i][8] > 1) ? (" units @ ") : (" unit @ ")) + Number(transactions[i][7]).toFixed(2) + "&#8192;" + "&#8192;" //Show a green circle next to a player's own completed trades
+                    }
+                }
+            } else { //If there are no completed trades yet, then display the following text
+                comp_trades.innerHTML = "****** &#8192; NO COMPLETED TRADES TO SHOW &#8192; ******" //"&#8192;" is the HTML code representing a long white space
+            }
         }
 
 
-        function populate_bid_ask_table(upd_bids, upd_asks){
-            $("#bid_ask_table_head tr").remove(); // in case redrawing table
+        function pop_bid_ask_table(upd_bids, upd_asks){
+            $("#bid_ask_table_head tr").remove();
             let txt_header = "";
             txt_header += "<tr>";
             txt_header += "<th style='margin:0;padding:0;text-align:center;vertical-align:middle;'>" + "&#8192;" + "</th>"
@@ -652,28 +468,28 @@
             $('#bid_ask_table_head thead').append(txt_header);
 
             if (upd_asks.length !== 0) {
-                $("#ask_table tr").remove(); // in case redrawing table
+                $("#ask_table tr").remove();
                 let txt_row_ask = "";
                 for (var i = 0; i < upd_asks.length; i++){
                     txt_row_ask += "<tr>";
                     txt_row_ask += "<td style='margin:0;padding:0;width:35px;text-align:center;vertical-align:middle;font-size:75%;'>" + "<exp>" + Number(upd_asks[i][0]).toFixed(2) + "</exp>" + "</td>";
                     txt_row_ask += "<td style='margin:0;padding:0;width:40px;text-align:right;vertical-align:middle;font-size:75%;'>" + upd_asks[i][1] + "</td>";
-                    txt_row_ask += "<td style='margin:0;padding:0;width:30px;text-align:right;vertical-align:middle;font-size:75%;'>" + ((!is_buyer && upd_asks[i][0] == outstanding_offer) ? ("<tiny>" + "&#128994;" + "</tiny>" + ((upd_asks[i][1] == outstanding_quant) ? ("") : (outstanding_quant))) : ("&#8192;")) + "</td>";
+                    txt_row_ask += "<td style='margin:0;padding:0;width:30px;text-align:right;vertical-align:middle;font-size:75%;'>" + ((!is_buyer && upd_asks[i][0] == outstanding_offer) ? ("<tiny>" + "&#128994;" + "</tiny>" + ((upd_asks[i][1] == outstanding_quant) ? ("") : (outstanding_quant))) : ("&#8192;")) + "</td>"; //If the player has an outstanding offer at ask price in the given row, then it displays a green circle next to the quantity (If other players also have an outstanding offer at the same ask price, then it also displays the quantity the player has offered next to the green circle)
                     txt_row_ask += "</tr>";
                 }
                 $('#ask_table tbody').append(txt_row_ask);
             } else {
-                $("#ask_table tr").remove(); // in case redrawing table
+                $("#ask_table tr").remove();
             }
 
             if (upd_bids.length !== 0){
-                $("#bid_table tr").remove(); // in case redrawing table
+                $("#bid_table tr").remove();
                 let txt_row_bid = "";
                 for (var i = 0; i < upd_bids.length; i++){
                     txt_row_bid += "<tr>";
                     txt_row_bid += "<td style='margin:0;padding:0;width:35px;text-align:center;vertical-align:middle;font-size:75%;'>" + "<exp>" + Number(upd_bids[i][0]).toFixed(2) + "</exp>" + "</td>";
                     txt_row_bid += "<td style='margin:0;padding:0;width:40px;text-align:right;vertical-align:middle;font-size:75%;'>" + upd_bids[i][1] + "</td>";
-                    txt_row_bid += "<td style='margin:0;padding:0;width:30px;text-align:right;vertical-align:middle;font-size:75%;'>" + ((is_buyer && upd_bids[i][0] == outstanding_offer) ? ("<tiny>" + "&#128994;" + "</tiny>" + ((upd_bids[i][1] == outstanding_quant) ? ("") : (outstanding_quant))) : ("&#8192;")) + "</td>";
+                    txt_row_bid += "<td style='margin:0;padding:0;width:30px;text-align:right;vertical-align:middle;font-size:75%;'>" + ((is_buyer && upd_bids[i][0] == outstanding_offer) ? ("<tiny>" + "&#128994;" + "</tiny>" + ((upd_bids[i][1] == outstanding_quant) ? ("") : (outstanding_quant))) : ("&#8192;")) + "</td>"; //If the player has an outstanding offer at bid price in the given row, then it displays a green circle next to the quantity (If other players also have an outstanding offer at the same bid price, then it also displays the quantity the player has offered next to the green circle)
                     txt_row_bid += "</tr>";
                 }
                 $('#bid_table tbody').append(txt_row_bid);
@@ -683,8 +499,8 @@
         }
 
 
-        function populate_best_bid_ask_table(upd_bids, upd_asks){
-            $("#best_bid_ask_table tr").remove(); // in case redrawing table
+        function pop_best_bid_ask_table(upd_bids, upd_asks){
+            $("#best_bid_ask_table tr").remove();
             let txt_header = "";
             txt_header += "<tr>";
             txt_header += "<th style='width:50%;'></th>"
@@ -708,8 +524,8 @@
         }
 
 
-        function populate_sum_table(n, upd_ind){
-            $("#sum_table tr").remove(); // in case redrawing table
+        function pop_sum_table(n, upd_ind){
+            $("#sum_table tr").remove();
             let txt_header = "";
             txt_header += "<tr>";
             txt_header += "<th style='text-align:center;font-size:75%;'>Value</th>"
@@ -736,16 +552,6 @@
         }
 
 
-        function create_offer_table(){
-            $("#offer_table tr").remove(); // in case redrawing table
-            let txt_header = "";
-            txt_header += "<tr>";
-            txt_header += "<th style='text-align:center;font-size:100%;'>Price</th>"
-            txt_header += "<th style='text-align:center;font-size:100%;'>Qty</th>"
-            txt_header += "</tr>"
-            $('#offer_table thead').append(txt_header);
-        }
-
         function update_offer_table(offer,quant){
             if (Number.parseFloat(offer) > 0 && Number.parseInt(quant) > 0){
                 create_offer_table();
@@ -757,22 +563,304 @@
                 txt_row += "</tr>";
 
                 if (rel_price_imp != "all"){
-                    offer_c = Number.parseFloat(offer);
-                    console.log("update_offer_table - offer_c: ", offer_c);
+                    offer_c = Number.parseFloat(offer); //If price improvement is relative to a player's own self, then with the current offer outstanding, his/her bid(ask) price for the next offer will be compared with this value and it needs to be higher(lower) than this value
                 }
-                quant_c = Number.parseInt(quant);
-                console.log("update_offer_table - quant_c: ", quant_c);
-
                 $('#offer_table tbody').append(txt_row);
             } else {
                 create_offer_table();
                 if (rel_price_imp != "all"){
-                    offer_c = 0;
-                    console.log("update_offer_table - offer_c: ", offer_c);
+                    offer_c = 0; //If price improvement is relative to a player's own self and if there are no outstanding offers by the player, then this resets the reference price against which the player's subsequent offers will be compared
                 }
-                quant_c = 0;
-                console.log("update_offer_table - quant_c: ", quant_c);
             }
+        }
+
+
+        function multi_unit_trading_check(){
+            if (multi_unit_trading == false){
+                my_quant1.value = Math.min(update_max_quant1(upd_ind),1); //If multi-unit trading is disabled, then disable the 'Quantity' textbox for the limit order and default the quantity in this to '1' (or to '0' if the player has traded all of the units)
+                my_quant1.disabled = true;
+                my_quant2.value = Math.min(update_max_quant2(upd_ind),1); //If multi-unit trading is disabled, then disable the 'Quantity' textbox for the market order and default the quantity in this to '1' (or to '0' if the player has traded all of the units or if there are no units currently offered for sale/purchase)
+                my_quant2.disabled = true;
+            }
+        }
+
+
+        document.addEventListener("keyup", function(event) {
+            setTimeout(function() {
+                if (Number.parseInt(my_quant1.value) > 0 && Number.parseFloat(my_offer.value) > 0){ //Checks in real time if positive numbers are entered price and quantity textboxes for the limit order, if so, then it enables the limit order button
+                    $("#btn-lim-order").attr('disabled', false);
+                } else {
+                    $("#btn-lim-order").attr('disabled', true);
+                }
+                if (Number.parseInt(my_quant2.value) > 0) { //Checks in real time if positive number is entered in the quantity box for the market order, if so, then it enables the market order button
+                    $("#btn-mkt-order").attr('disabled', false);
+                } else {
+                    $("#btn-mkt-order").attr('disabled', true);
+                }
+            }, 0);
+        });
+
+
+        $("#my_quant1").on('keydown keyup change', function(e){
+            var max_quant1 = update_max_quant1(upd_ind); // Calculates the maximum number of available units for which the player can place a bid or an ask offer (based on own available units)
+
+            if ($(this).val() > max_quant1 && e.keyCode !== 46 && e.keyCode !== 8){ // If the input quantity is more than the number of units available, then display an error message
+               e.preventDefault();
+               $(this).val("");
+                error_1.innerHTML = "You cannot " + ((is_buyer) ? ("bid for ") : ("ask for ")) + ((max_quant1==0) ? ("any units.") : ("more than " + max_quant1 + " units.")) ;
+                $('#error_1').addClass('fading');
+                setTimeout(function() {
+                    $('#error_1').removeClass('fading');
+                }, 1000);
+                setTimeout(function() {
+                    error_1.innerHTML = "";
+                }, 3500);
+            }
+        });
+
+
+        function update_max_quant1(inducement){
+            let max_quant1 = 0
+            for (var i = 0; i < inducement[this_round-1].length; i++){
+                max_quant1 += inducement[this_round-1][i][3]
+            }
+
+            my_quant1.max = parseInt(max_quant1);
+
+            return max_quant1
+        }
+
+
+        $("#my_quant2").on('keydown keyup change', function(e){
+            var max_quant2 = update_max_quant2(upd_ind); // Calculates the maximum number of available units which can be bought or sold by the player (picks up the minimum of own available units and the number of units for which there are currently any outstanding bids or asks)
+
+            if ($(this).val() > max_quant2 && e.keyCode !== 46 && e.keyCode !== 8){ // If the input quantity is more than the number of units available, then display an error message
+               e.preventDefault();
+               $(this).val("");
+                error_2.innerHTML = "You cannot " + ((is_buyer) ? ("buy ") : ("sell ")) + ((max_quant2==0) ? ("any units at this moment.") : ("more than " + max_quant2 + " units at this moment.")) ;
+                $('#error_2').addClass('fading');
+                setTimeout(function() {
+                    $('#error_2').removeClass('fading');
+                }, 1000);
+                setTimeout(function() {
+                    error_2.innerHTML = "";
+                }, 3500);
+            }
+        });
+
+
+        function update_max_quant2(inducement){
+            let val_1 = 0
+            for (var i = 0; i < inducement[this_round-1].length; i++){
+                val_1 += inducement[this_round-1][i][3]
+            }
+
+            let val_2 = 0
+            let unit_bids = 0
+            let unit_asks = 0
+            for (var i = 0; i < upd_bids.length; i++){
+                unit_bids = unit_bids + upd_bids[i][1]
+            }
+            for (var i = 0; i < upd_asks.length; i++){
+                unit_asks = unit_asks + upd_asks[i][1]
+            }
+
+            if (is_buyer==true){
+                if (upd_asks !== []){
+                    val_2 = unit_asks
+                } else {
+                    val_2 = 0
+                }
+            } else {
+                if (upd_bids !== []){
+                    val_2 = unit_bids
+                } else {
+                    val_2 = 0
+                }
+            }
+
+            max_quant2 = Math.min(val_1,val_2)
+
+            my_quant2.max = parseInt(max_quant2);
+
+            return max_quant2
+        }
+
+
+        $("#btn-lim-order").on('click', function(e){
+            if(is_buyer){
+                if (Number.parseFloat(my_offer.value) < Number.parseFloat(offer_c)){ //Checks for price improvement
+                    my_offer.value = "";
+                    my_quant1.value = "";
+                    $("#btn-lim-order").attr('disabled', true);
+                    error_1.innerHTML = "Your bid price has to be greater than " + Number(offer_c).toFixed(2) + "." ;
+                    $('#error_1').addClass('fading');
+                    setTimeout(function() {
+                        $('#error_1').removeClass('fading');
+                    }, 1000);
+                    setTimeout(function() {
+                        error_1.innerHTML = "";
+                    }, 3500);
+                } else {
+                    limitOrder(Number.parseFloat(JSON.parse(JSON.stringify(my_offer.value))), Number.parseInt(JSON.parse(JSON.stringify(my_quant1.value))));
+                    outstanding_offer = Number.parseFloat(JSON.parse(JSON.stringify(my_offer.value)));
+                    outstanding_quant = Number.parseInt(JSON.parse(JSON.stringify(my_quant1.value)));
+                    update_offer_table(Number.parseFloat(my_offer.value),Number.parseInt(my_quant1.value));
+                    my_quant1.value = "";
+                    my_offer.value = "";
+                    var max_quant1 = update_max_quant1(upd_ind);
+                    $("#btn-lim-order").attr('disabled', true);
+                }
+            } else {
+                if (Number.parseFloat(offer_c)!=0 && Number.parseFloat(my_offer.value) > Number.parseFloat(offer_c)){ //Checks for price improvement
+                    my_offer.value = "";
+                    my_quant1.value = "";
+                    $("#btn-lim-order").attr('disabled', true);
+                    error_1.innerHTML = "Your ask price has to be less than " + Number(offer_c).toFixed(2) + "." ;
+                    $('#error_1').addClass('fading');
+                    setTimeout(function() {
+                        $('#error_1').removeClass('fading');
+                    }, 1000);
+                    setTimeout(function() {
+                        error_1.innerHTML = "";
+                    }, 3500);
+                } else {
+                    limitOrder(Number.parseFloat(JSON.parse(JSON.stringify(my_offer.value))), Number.parseInt(JSON.parse(JSON.stringify(my_quant1.value))));
+                    outstanding_offer = Number.parseFloat(JSON.parse(JSON.stringify(my_offer.value)));
+                    outstanding_quant = Number.parseInt(JSON.parse(JSON.stringify(my_quant1.value)));
+                    update_offer_table(Number.parseFloat(my_offer.value),Number.parseInt(my_quant1.value));
+                    my_quant1.value = "";
+                    my_offer.value = "";
+                    var max_quant1 = update_max_quant1(upd_ind);
+                    $("#btn-lim-order").attr('disabled', true);
+                }
+            }
+            multi_unit_trading_check();
+        });
+
+
+        function limitOrder(offer, quant){
+            liveSend({'quant': quant, 'market_order': "", 'limit_order': offer})
+        }
+
+
+        window.addEventListener('DOMContentLoaded', (event) => {
+            liveSend({});
+        });
+
+
+        $("#btn-mkt-order").on('click', function(e){
+            var max_quant2 = update_max_quant2(upd_ind);
+            $("#btn-mkt-order").attr('disabled', true);
+            marketOrder(Number.parseInt(JSON.parse(JSON.stringify(my_quant2.value))));
+            my_quant2.value = "";
+            multi_unit_trading_check();
+        });
+
+
+        function marketOrder(quant){
+            liveSend({'quant': quant, 'market_order': "Yes", 'limit_order': ""})
+        }
+
+
+        function liveRecv(data) {
+            let {bids, asks, current_offer, current_quant, inducement, news, event, payoff, session_payoff, offers, transactions, det_bids, det_asks, order_type} = data;
+
+            console.log(data);
+
+            $("#btn-mkt-order").attr('disabled', true);
+
+            upd_bids = JSON.parse(JSON.stringify(bids));
+            upd_asks = JSON.parse(JSON.stringify(asks));
+            upd_ind = JSON.parse(JSON.stringify(inducement));
+
+            multi_unit_trading_check();
+
+            if (is_buyer && asks.length !== 0 && parseInt(my_quant2.value) > 0){
+                $("#btn-mkt-order").attr('disabled', false);
+            } else if (!is_buyer && bids.length !== 0 && parseInt(my_quant2.value) > 0){
+                $("#btn-mkt-order").attr('disabled', false);
+            }
+
+            if (rel_price_imp == "all"){ //Updates the value in offer_c variable based on whether the price improvement is relative to a player's own self or all
+                if (is_buyer && upd_bids.length!=0) {
+                    offer_c = Number.parseFloat(get_max_md_arr(upd_bids,0));
+                } else if (!is_buyer && upd_asks.length!=0){
+                    offer_c = Number.parseFloat(get_min_md_arr(upd_asks,0));
+                } else {
+                    offer_c = 0;
+                }
+            }
+
+            //The following three blocks of code update outstanding offer and quantity for a player based on the list of detailed bids/asks
+            //The python code for this app discards an outstanding limit order (for a higher quantity) by a player if s/he submits a market order (for a lesser quantity) right after it by setting 'current_offer' and 'current_quant' equal to zero when the market order is complete (However, it does adjust for the market order quantity in the list of bids/asks once the market order is fulfilled and does not discard it)
+            //The following lines of code, using the detailed list of bids/asks, populate the 'existing_offer_quant' and 'existing_offer_amt' variables with the quantity and price for an outstanding offer and then compare these with the 'current_offer' and 'current_quant' values to determine whether a player still has some units on offer
+            let existing_offer_quant = 0;
+            let existing_offer_amt = 0;
+
+            if(is_buyer){
+                for (var i = 0; i < det_bids.length; i++){
+                    if (det_bids[i][0]==this_round && det_bids[i][1]==my_id){
+                        existing_offer_quant += 1;
+                        existing_offer_amt = det_bids[i][2];
+                    }
+                }
+            } else {
+                for (var i = 0; i < det_asks.length; i++){
+                    if (det_asks[i][0]==this_round && det_asks[i][1]==my_id){
+                        existing_offer_quant += 1;
+                        existing_offer_amt = det_asks[i][2];
+                    }
+                }
+            }
+
+            if (existing_offer_quant > 0){
+                outstanding_offer = existing_offer_amt;
+                outstanding_quant = existing_offer_quant;
+            } else {
+                outstanding_offer = current_offer;
+                outstanding_quant = current_quant;
+            }
+
+            pop_bid_ask_table(bids, asks);
+            pop_best_bid_ask_table(bids, asks);
+
+            period_earnings = payoff;
+            session_earnings = session_payoff;
+            update_earnings(period_earnings,session_earnings);
+
+            update_messages(event, news);
+
+            if (news.length != 0) { //If the player was looking at the summary table for any of the previous rounds and in the meanwhile s/he has successfully traded, then this reverts to the summary table for the current round so that the player can check details of the trade
+                for (var i = 0; i < news.length; i++){
+                    if (news[i][0] == my_id || news[i][1] == my_id) {
+                        hist_round = this_round;
+                        reset_hist_nav_buttons();
+                        pop_sum_table(this_round,inducement);
+                    }
+                }
+                ticker_data = transactions;
+                pop_comp_trades_ticker(ticker_data,this_round);
+                update_max_quant1(inducement);
+                update_max_quant2(inducement);
+                update_offer_table(outstanding_offer,outstanding_quant);
+            }
+        }
+
+
+        function update_earnings(period_earnings,session_earnings){
+            document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(period_earnings).toFixed(2)
+            document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
+        }
+
+
+        function get_min_md_arr(arr,idx){
+            return Math.min.apply(null, arr.map(function (e) {return e[idx]}));
+        }
+
+
+        function get_max_md_arr(arr,idx){
+            return Math.max.apply(null, arr.map(function (e) {return e[idx]}));
         }
 
 
@@ -817,198 +905,55 @@
         }
 
 
-        function update_quant1(inducement){
-            let max_quant1 = 0
-            for (var i = 0; i < inducement[this_round-1].length; i++){
-                max_quant1 += inducement[this_round-1][i][3]
+        $("#btn-first").on('click', function(e){
+            hist_round = 1;
+            hist_text.innerHTML = "Period " + hist_round + " Summary";
+            pop_sum_table(hist_round,upd_ind);
+            $("#btn-first").attr('disabled', true);
+            $("#btn-prev").attr('disabled', true);
+            $("#btn-next").attr('disabled', false);
+            $("#btn-last").attr('disabled', false);
+        });
+
+
+        $("#btn-prev").on('click', function(e){
+            $("#btn-next").attr('disabled', false);
+            $("#btn-last").attr('disabled', false);
+
+            hist_round = hist_round - 1;
+            hist_text.innerHTML = "Period " + hist_round + " Summary";
+            pop_sum_table(hist_round,upd_ind);
+
+            if (hist_round == 1){
+                $("#btn-first").attr('disabled', true);
+                $("#btn-prev").attr('disabled', true);
             }
-
-            my_quant1.max = parseInt(max_quant1);
-
-            return max_quant1
-        }
+        });
 
 
-        function update_quant2(inducement){
-            let val_1 = 0
-            for (var i = 0; i < inducement[this_round-1].length; i++){
-                val_1 += inducement[this_round-1][i][3]
+        $("#btn-next").on('click', function(e){
+            $("#btn-prev").attr('disabled', false);
+            $("#btn-first").attr('disabled', false);
+
+            hist_round = hist_round + 1;
+            hist_text.innerHTML = "Period " + hist_round + " Summary";
+            pop_sum_table(hist_round,upd_ind);
+
+            if (hist_round == this_round){
+                $("#btn-next").attr('disabled', true);
+                $("#btn-last").attr('disabled', true);
             }
-
-            let val_2 = 0
-            let unit_bids = 0
-            let unit_asks = 0
-            for (var i = 0; i < upd_bids.length; i++){
-                unit_bids = unit_bids + upd_bids[i][1]
-            }
-            for (var i = 0; i < upd_asks.length; i++){
-                unit_asks = unit_asks + upd_asks[i][1]
-            }
-
-            if (is_buyer==true){
-                if (upd_asks !== []){
-                    val_2 = unit_asks
-                } else {
-                    val_2 = 0
-                }
-            } else {
-                if (upd_bids !== []){
-                    val_2 = unit_bids
-                } else {
-                    val_2 = 0
-                }
-            }
-
-            max_quant2 = Math.min(val_1,val_2)
-
-            my_quant2.max = parseInt(max_quant2);
-
-            return max_quant2
-        }
-
-        function pop_comp_trades_ticker(transactions,this_round){
-            comp_trades.innerHTML = "";
-
-            if (transactions.length != 0){
-                for (var i = 0; i < transactions.length; i++){
-                    if (transactions[i][0]==this_round){
-                        comp_trades.innerHTML += "&#8192;" + "&#8192;" + ((transactions[i][3] == my_id || transactions[i][5] == my_id) ? ("<tiny>" + "&#128994;" + "</tiny>") : ("")) + " " + transactions[i][8] + ((transactions[i][8] > 1) ? (" units @ ") : (" unit @ ")) + Number(transactions[i][7]).toFixed(2) + "&#8192;" + "&#8192;"
-                    }
-                }
-            } else {
-                comp_trades.innerHTML = "****** &#8192; NO COMPLETED TRADES TO SHOW &#8192; ******"
-            }
-        }
+        });
 
 
-        function get_min_md_arr(arr,idx){
-            return Math.min.apply(null, arr.map(function (e) {return e[idx]}));
-        }
-
-
-        function get_max_md_arr(arr,idx){
-            return Math.max.apply(null, arr.map(function (e) {return e[idx]}));
-        }
-
-
-        function liveRecv(data) {
-            let {bids, asks, current_offer, current_quant, inducement, news, event, payoff, session_payoff, offers, transactions, det_bids, det_asks, order_type} = data;
-
-
-
-
-
-
-            console.log('liveRecv - bids: ', bids);
-            console.log('liveRecv - asks: ', asks);
-            console.log('liveRecv - current_offer: ', current_offer);
-            console.log('liveRecv - current_quant: ', current_quant);
-            console.log('liveRecv - inducement: ', inducement);
-            console.log('liveRecv - payoff: ', payoff);
-            console.log('liveRecv - session_payoff: ', session_payoff);
-            console.log('liveRecv - offers: ', offers);
-            console.log('liveRecv - transactions: ', transactions);
-            console.log('liveRecv - detailed bids: ', det_bids);
-            console.log('liveRecv - detailed asks: ', det_asks);
-            console.log('liveRecv - order_type: ', order_type);
-
-            $("#btn-mkt-order").attr('disabled', true);
-
-            upd_bids = JSON.parse(JSON.stringify(bids));
-            upd_asks = JSON.parse(JSON.stringify(asks));
-            upd_ind = JSON.parse(JSON.stringify(inducement));
-
-            multi_unit_trading_check();
-
-            if (is_buyer && asks.length !== 0 && parseInt(my_quant2.value) > 0){
-                $("#btn-mkt-order").attr('disabled', false);
-            } else if (!is_buyer && bids.length !== 0 && parseInt(my_quant2.value) > 0){
-                $("#btn-mkt-order").attr('disabled', false);
-            }
-
-            if (rel_price_imp == "all"){
-                if (is_buyer && upd_bids.length!=0) {
-                    offer_c = Number.parseFloat(get_max_md_arr(upd_bids,0));
-                } else if (!is_buyer && upd_asks.length!=0){
-                    offer_c = Number.parseFloat(get_min_md_arr(upd_asks,0));
-                } else {
-                    offer_c = 0;
-                }
-                console.log('liveRecv - offer_c: ', offer_c);
-            }
-
-            let existing_offer_quant = 0;
-            let existing_offer_amt = 0;
-
-            if(is_buyer){
-                for (var i = 0; i < det_bids.length; i++){
-                    if (det_bids[i][0]==this_round && det_bids[i][1]==my_id){
-                        existing_offer_quant += 1;
-                        existing_offer_amt = det_bids[i][2];
-                    }
-                }
-            } else {
-                for (var i = 0; i < det_asks.length; i++){
-                    if (det_asks[i][0]==this_round && det_asks[i][1]==my_id){
-                        existing_offer_quant += 1;
-                        existing_offer_amt = det_asks[i][2];
-                    }
-                }
-            }
-
-            console.log('liveRecv - existing_offer_quant: ', existing_offer_quant);
-            console.log('liveRecv - existing_offer_amt: ', existing_offer_amt);
-
-            if (existing_offer_quant > 0){
-                outstanding_offer = existing_offer_amt;
-                outstanding_quant = existing_offer_quant;
-            } else {
-                outstanding_offer = current_offer;
-                outstanding_quant = current_quant;
-            }
-
-            console.log('liveRecv - outstanding_offer: ', outstanding_offer);
-            console.log('liveRecv - outstanding_quant: ', outstanding_quant);
-
-            populate_bid_ask_table(bids, asks);
-            populate_best_bid_ask_table(bids, asks);
-
-            period_earnings = payoff;
-            session_earnings = session_payoff;
-            update_earnings(period_earnings,session_earnings);
-
-            update_messages(event, news);
-
-            if (news.length != 0) {
-                for (var i = 0; i < news.length; i++){
-                    if (news[i][0] == my_id || news[i][1] == my_id) {
-                        hist_round = this_round;
-                        reset_hist_nav_buttons();
-                        populate_sum_table(this_round,inducement);
-                    }
-                }
-                ticker_data = transactions;
-                pop_comp_trades_ticker(ticker_data,this_round);
-                update_quant1(inducement);
-                update_quant2(inducement);
-                update_offer_table(outstanding_offer,outstanding_quant);
-            }
-
-        }
-
-
-        function marketOrder(quant){
-            liveSend({'quant': quant, 'market_order': "Yes", 'limit_order': ""})
-        }
-
-
-        function limitOrder(offer, quant){
-            liveSend({'quant': quant, 'market_order': "", 'limit_order': offer})
-        }
-
-
-        window.addEventListener('DOMContentLoaded', (event) => {
-            liveSend({});
+        $("#btn-last").on('click', function(e){
+            hist_round = this_round;
+            hist_text.innerHTML = "Period " + hist_round + " Summary";
+            pop_sum_table(hist_round,upd_ind);
+            $("#btn-first").attr('disabled', false);
+            $("#btn-prev").attr('disabled', false);
+            $("#btn-next").attr('disabled', true);
+            $("#btn-last").attr('disabled', true);
         });
     </script>
 

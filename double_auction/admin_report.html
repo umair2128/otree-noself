@@ -322,7 +322,7 @@
         const dateFromStr = str => new Date('1970/01/01 ' + str);
         events = events.sort((a, b) => dateFromStr(b[0]) - dateFromStr(a[0]));
 
-        console.log(events);
+        console.log('events: ', events);
 
         $("#period_sum_table tr").remove(); // in case redrawing table
         let txt_header = "";
