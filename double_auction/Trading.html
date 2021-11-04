@@ -234,7 +234,6 @@
         let is_bot = js_vars.is_bot;
         let tot_eq_units = js_vars.tot_eq_units;
         let timeout_seconds = js_vars.timeout_seconds;
-        console.log('is_bot:', is_bot, ', tot_eq_units:',tot_eq_units, ', timeout_seconds:',timeout_seconds);
         let this_round = js_vars.cur_round; //The current round/period
         let total_rounds = js_vars.total_rounds; //The total number of rounds/periods in the experiment
         let hide_tot_rounds = js_vars.hide_tot_rounds;
@@ -264,6 +263,8 @@
 
         let event_messages = document.getElementById('event_messages'); //The div which is populated by messages
         let hist_text = document.getElementById('hist_text');  //The caption of the summary table (e.g., "Period 1 Summary")
+
+        let time_left_last_rec = 16;
 
         window.onbeforeunload = function() { //This function stores the data being displayed on screen (and data in background used to generate it) in web browser's storage so that the page can be repopulated with it upon page refresh by the player (NOTE: This won't work if the browser window was closed and the link was reloaded)
             sessionStorage.setItem("bids", JSON.stringify(upd_bids));
@@ -301,28 +302,30 @@
                 var interval = Math.floor(Math.random() * (max_int - min_int + 1)) + min_int;
 
                 setInterval(function(){
-                    for (var i = 0; i < upd_ind[this_round-1].length; i++){
-                        if (upd_ind[this_round-1][i][3] > 0){
-                            if(is_buyer){
-                                my_offer.value = upd_ind[this_round-1][i][0] - Math.floor(Math.random() * (((i >=  upd_ind[this_round-1].length-1) ? (upd_ind[this_round-1][i-1][0]-upd_ind[this_round-1][i][0]) : (upd_ind[this_round-1][i][0]-upd_ind[this_round-1][i+1][0])) * precision - 1 * precision) + 1 * precision) / (1*precision)
-                                if (multi_unit_trading == true){
-                                    my_quant1.value = Math.floor(Math.random() * (upd_ind[this_round-1][i][3] - 1 + 1)) + 1
+                    if (time_left_last_rec > 15){
+                        for (var i = 0; i < upd_ind[this_round-1].length; i++){
+                            if (upd_ind[this_round-1][i][3] > 0){
+                                if(is_buyer){
+                                    my_offer.value = upd_ind[this_round-1][i][0] - Math.floor(Math.random() * (((i >=  upd_ind[this_round-1].length-1) ? (upd_ind[this_round-1][i-1][0]-upd_ind[this_round-1][i][0]) : (upd_ind[this_round-1][i][0]-upd_ind[this_round-1][i+1][0])) * precision - 1 * precision) + 1 * precision) / (1*precision)
+                                    if (multi_unit_trading == true){
+                                        my_quant1.value = Math.floor(Math.random() * (upd_ind[this_round-1][i][3] - 1 + 1)) + 1
+                                    } else {
+                                        my_quant1.value = 1
+                                    }
                                 } else {
-                                    my_quant1.value = 1
+                                    my_offer.value = upd_ind[this_round-1][i][0] + Math.floor(Math.random() * (((i >=  upd_ind[this_round-1].length-1) ? (upd_ind[this_round-1][i][0]-upd_ind[this_round-1][i-1][0]) : (upd_ind[this_round-1][i+1][0]-upd_ind[this_round-1][i][0])) * precision - 1 * precision) + 1 * precision) / (1*precision)
+                                    if (multi_unit_trading == true){
+                                        my_quant1.value = Math.floor(Math.random() * (upd_ind[this_round-1][i][3] - 1 + 1)) + 1
+                                    } else {
+                                        my_quant1.value = 1
+                                    }
                                 }
-                            } else {
-                                my_offer.value = upd_ind[this_round-1][i][0] + Math.floor(Math.random() * (((i >=  upd_ind[this_round-1].length-1) ? (upd_ind[this_round-1][i][0]-upd_ind[this_round-1][i-1][0]) : (upd_ind[this_round-1][i+1][0]-upd_ind[this_round-1][i][0])) * precision - 1 * precision) + 1 * precision) / (1*precision)
-                                if (multi_unit_trading == true){
-                                    my_quant1.value = Math.floor(Math.random() * (upd_ind[this_round-1][i][3] - 1 + 1)) + 1
-                                } else {
-                                    my_quant1.value = 1
-                                }
+                                break;
                             }
-                            break;
                         }
+                        $("#btn-lim-order").attr('disabled', false);
+                        document.getElementById('btn-lim-order').click();
                     }
-                    $("#btn-lim-order").attr('disabled', false);
-                    document.getElementById('btn-lim-order').click();
                 },interval*1000);  // this will make it click again every 'interval' seconds
 
             } else {
@@ -849,6 +852,31 @@
             upd_asks = JSON.parse(JSON.stringify(asks));
             upd_ind = JSON.parse(JSON.stringify(inducement));
 
+            var last_time_offers
+            var last_time_transactions
+
+            console.log(last_time_offers, last_time_transactions)
+
+            if (offers.length != 0){
+                var temp_time_o = offers[offers.length-1][1].split(':')
+                last_time_offers = (+temp_time_o[0]) * 60 + (+temp_time_o[1]);
+                console.log(last_time_offers)
+            }
+
+            if (transactions.length != 0){
+                var temp_time_t = transactions[transactions.length-1][1].split(':')
+                last_time_transactions = (+temp_time_t[0]) * 60 + (+temp_time_t[1]);
+                console.log(last_time_transactions)
+            }
+
+            if (last_time_offers != null && last_time_transactions != null){
+                time_left_last_rec = Math.min(last_time_offers,last_time_transactions)
+            } else if (last_time_offers == null && last_time_transactions != null){
+                time_left_last_rec = last_time_transactions
+            } else if (last_time_offers != null && last_time_transactions == null){
+                time_left_last_rec = last_time_offers
+            }
+
             multi_unit_trading_check();
 
             if (is_buyer && asks.length !== 0 && parseInt(my_quant2.value) > 0){
@@ -978,7 +1006,6 @@
                 }
             }
         }
-
 
         $("#btn-first").on('click', function(e){
             hist_round = 1;
