@@ -858,15 +858,19 @@
             console.log(last_time_offers, last_time_transactions)
 
             if (offers.length != 0){
-                var temp_time_o = offers[offers.length-1][1].split(':')
-                last_time_offers = (+temp_time_o[0]) * 60 + (+temp_time_o[1]);
-                console.log(last_time_offers)
+                if (offers[offers.length-1][0] == this_round){
+                    var temp_time_o = offers[offers.length-1][1].split(':')
+                    last_time_offers = (+temp_time_o[0]) * 60 + (+temp_time_o[1]);
+                    console.log(last_time_offers)
+                }
             }
 
             if (transactions.length != 0){
-                var temp_time_t = transactions[transactions.length-1][1].split(':')
-                last_time_transactions = (+temp_time_t[0]) * 60 + (+temp_time_t[1]);
-                console.log(last_time_transactions)
+                if (transactions[transactions.length-1][0] == this_round) {
+                    var temp_time_t = transactions[transactions.length - 1][1].split(':')
+                    last_time_transactions = (+temp_time_t[0]) * 60 + (+temp_time_t[1]);
+                    console.log(last_time_transactions)
+                }
             }
 
             if (last_time_offers != null && last_time_transactions != null){
