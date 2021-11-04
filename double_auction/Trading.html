@@ -1,5 +1,5 @@
 {{ block title }}
-    Trading Phase
+    <span id="page_title"></span>
 {{ endblock }}
 
 
@@ -161,7 +161,7 @@
             display: none;
         }
 
-        //Can be used to hide debug information and all other 'card' divs when testing the application locally
+        /*Can be used to hide debug information and all other 'card' divs when testing the application locally*/
         /*.card {
             display: none;
         }*/
@@ -175,6 +175,14 @@
           text-overflow: ellipsis;
           vertical-align: middle;
           text-align: center;
+        }
+
+        red {
+            color:red;
+            font-family: monospace;
+            font-weight: bolder;
+            -webkit-text-stroke-width: 1.5px;
+            -webkit-text-stroke-color: black;
         }
 
         tiny {
@@ -223,8 +231,13 @@
     <script>
         let my_id = js_vars.id_in_group; //The ID of the player
         let is_buyer = js_vars.is_buyer; //'True' if the player is a buyer, 'False' otherwise
+        let is_bot = js_vars.is_bot;
+        let tot_eq_units = js_vars.tot_eq_units;
+        let timeout_seconds = js_vars.timeout_seconds;
+        console.log('is_bot:', is_bot, ', tot_eq_units:',tot_eq_units, ', timeout_seconds:',timeout_seconds);
         let this_round = js_vars.cur_round; //The current round/period
         let total_rounds = js_vars.total_rounds; //The total number of rounds/periods in the experiment
+        let hide_tot_rounds = js_vars.hide_tot_rounds;
         let upd_ind = js_vars.inducement; //Stores the player's inducements and all of the other relevant data for the experiment
 
         let upd_bids = []; //Stores the frequency list of outstanding bids
@@ -249,9 +262,8 @@
         let error_1 = document.getElementById('error_1'); //The div where the error message pops up when the user makes an attempt to place an invalid limit order
         let error_2 = document.getElementById('error_2'); //The div where the error message pops up when the user makes an attempt to place an invalid market order
 
-        event_messages = document.getElementById('event_messages'); //The div which is populated by messages
-        hist_text = document.getElementById('hist_text');  //The caption of the summary table (e.g., "Period 1 Summary")
-
+        let event_messages = document.getElementById('event_messages'); //The div which is populated by messages
+        let hist_text = document.getElementById('hist_text');  //The caption of the summary table (e.g., "Period 1 Summary")
 
         window.onbeforeunload = function() { //This function stores the data being displayed on screen (and data in background used to generate it) in web browser's storage so that the page can be repopulated with it upon page refresh by the player (NOTE: This won't work if the browser window was closed and the link was reloaded)
             sessionStorage.setItem("bids", JSON.stringify(upd_bids));
@@ -275,6 +287,45 @@
             check_for_refresh(); //Checks whether the Trading page is refreshed during a round (by the player) or if it is being refreshed due to the beginning of a new round
             hist_round = this_round //This variable is used to cycle through the summary table for different rounds (defaults to the current round on page load/refresh)
             set_things_up(); //Prepares all of the data to be presented to the player on the screen and displays it
+
+            if(is_bot){
+                document.getElementById('btn-mkt-order').style.visibility="hidden";
+                document.getElementById('btn-lim-order').style.visibility="hidden";
+                document.getElementById('page_title').innerHTML = "Trading Phase " + "&#128314;" + "<red>" + " THIS PLAYER IS A BOT!" + "</red>";
+
+                var precision = 100; // 2 decimals
+                var max_int = ((timeout_seconds)/tot_eq_units)+5
+                var min_int = ((timeout_seconds)/tot_eq_units)-5
+                var interval = Math.floor(Math.random() * (max_int - min_int + 1)) + min_int;
+
+                setInterval(function(){
+                    for (var i = 0; i < upd_ind[this_round-1].length; i++){
+                        if (upd_ind[this_round-1][i][3] > 0){
+                            if(is_buyer){
+                                my_offer.value = upd_ind[this_round-1][i][0] - Math.floor(Math.random() * (((i >=  upd_ind[this_round-1].length-1) ? (upd_ind[this_round-1][i-1][0]-upd_ind[this_round-1][i][0]) : (upd_ind[this_round-1][i][0]-upd_ind[this_round-1][i+1][0])) * precision - 1 * precision) + 1 * precision) / (1*precision)
+                                if (multi_unit_trading == true){
+                                    my_quant1.value = Math.floor(Math.random() * (upd_ind[this_round-1][i][3] - 1 + 1)) + 1
+                                } else {
+                                    my_quant1.value = 1
+                                }
+                            } else {
+                                my_offer.value = upd_ind[this_round-1][i][0] + Math.floor(Math.random() * (((i >=  upd_ind[this_round-1].length-1) ? (upd_ind[this_round-1][i][0]-upd_ind[this_round-1][i-1][0]) : (upd_ind[this_round-1][i+1][0]-upd_ind[this_round-1][i][0])) * precision - 1 * precision) + 1 * precision) / (1*precision)
+                                if (multi_unit_trading == true){
+                                    my_quant1.value = Math.floor(Math.random() * (upd_ind[this_round-1][i][3] - 1 + 1)) + 1
+                                } else {
+                                    my_quant1.value = 1
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    $("#btn-lim-order").attr('disabled', false);
+                    document.getElementById('btn-lim-order').click();
+                },interval*1000);  // this will make it click again every 'interval' seconds
+
+            } else {
+                document.getElementById('page_title').innerHTML = "Trading Phase";
+            }
         }
 
 
@@ -364,7 +415,7 @@
 
 
         function pop_info_table(){
-            document.getElementById('period').innerHTML = "<b>" + "Period " + "</b>" + this_round + "<b>" + " of " + "</b>" + total_rounds
+            document.getElementById('period').innerHTML = "<b>" + "Period " + "</b>" + this_round + ((hide_tot_rounds) ? ("") : ("<b>" + " of " + "</b>" + total_rounds))
             document.getElementById('period_earnings').innerHTML = "<b>" + "Period Earnings: " + "</b>" + Number(period_earnings).toFixed(2)
             document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
         }
@@ -381,6 +432,23 @@
 
 
         function recall_elements(){
+
+            console.log(
+                'bids:', sessionStorage.getItem("bids"),
+                ', asks:', sessionStorage.getItem("asks"),
+                ', messages:', sessionStorage.getItem("messages"),
+                ', inducements:', sessionStorage.getItem("inducements"),
+                ', offer:', sessionStorage.getItem("offer"),
+                ', quant1:', sessionStorage.getItem("quant1"),
+                ', quant2:', sessionStorage.getItem("quant2"),
+                ', offer_c:', sessionStorage.getItem("offer_c"),
+                ', period_earnings:', sessionStorage.getItem("period_earnings"),
+                ', session_earnings:', sessionStorage.getItem("session_earnings"),
+                ', ticker_data:', sessionStorage.getItem("ticker_data"),
+                ', outstanding_offer:', sessionStorage.getItem("outstanding_offer"),
+                ', outstanding_quant:', sessionStorage.getItem("outstanding_quant")
+            )
+
             if (sessionStorage.getItem("bids") !== null){
                 upd_bids = JSON.parse(sessionStorage.getItem("bids"));
             }
@@ -407,6 +475,10 @@
 
             if (sessionStorage.getItem("quant2") !== null && Number(JSON.parse(sessionStorage.getItem("quant2"))) > 0){
                 my_quant2.value = Number(JSON.parse(sessionStorage.getItem("quant2")));
+            }
+
+            if (sessionStorage.getItem("offer_c") !== null && Number(JSON.parse(sessionStorage.getItem("offer_c"))) > 0){
+                offer_c = Number(JSON.parse(sessionStorage.getItem("offer_c")));
             }
 
             if (sessionStorage.getItem("period_earnings") !== null){
@@ -741,6 +813,7 @@
 
         function limitOrder(offer, quant){
             liveSend({'quant': quant, 'market_order': "", 'limit_order': offer})
+            console.log('limit order:', offer, quant);
         }
 
 

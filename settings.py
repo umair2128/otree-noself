@@ -5,20 +5,27 @@ SESSION_CONFIGS = [
         name='double_auction',
         display_name="Double Auction",
         app_sequence=['double_auction'],
-        num_rounds=6,
-        num_demo_participants=4,
-        timeout_seconds=180,
+        hide_total_rounds=True,
+        num_rounds=20,
+        num_demo_participants=6,
+        num_bots=6,
+        timeout_seconds=120,
         wait_timeout_seconds=5,
         multiple_unit_trading=False,
         relative_price_imp="self",
         num_types=1,
-        num_induc_val_steps=5,
+        custom_inducement=True,
+        num_induc_val_steps=6,
         quant_at_indc_val=3,
-        eq_indc_val_step=4,
-        step_diff_per_type=5,
+        eq_indc_val_step=5,
+        step_diff_per_type=3,
         min_induc_val=20,
-        step_up_aft_ev_round=2,
-        step_up_by=5,
+        step_up_aft_ev_round=20,
+        step_up_by=0,
+        inducement_round1_buyer_type1=[[56,1],[53,1],[50,1],[47,1],[44,1],[41,1]],
+        inducement_round1_buyer_type2=[],
+        inducement_round1_seller_type1=[[29,1],[32,1],[35,1],[38,1],[41,1],[44,1]],
+        inducement_round1_seller_type2=[],
         doc="""
         This is the commodity double auction application. The following passage discusses the configurable parameters for
         this app. 
@@ -166,5 +173,9 @@ SECRET_KEY = '4387860144726'
 # if an app is included in SESSION_CONFIGS, you don't need to list it here
 INSTALLED_APPS = ['otree']
 
-PARTICIPANT_FIELDS = ['stimuli', 'responses', 'reaction_times', 'order']
-SESSION_FIELDS = ['num_induc_val_steps', 'quant_at_indc_val', 'min_induc_val', 'num_types', 'eq_indc_val_step', 'step_diff_per_type', 'step_up_aft_ev_round', 'step_up_by', 'starting_price','ending_price','total_rounds','timeout_seconds','presets_template', 'seller_presets', 'seller_type1_presets', 'seller_type2_presets','buyer_presets', 'buyer_type1_presets','buyer_type2_presets']
+PARTICIPANT_FIELDS = ['id_in_group', 'is_buyer', 'is_bot', 'id_by_role', 'type', 'inducement', 'tot_eq_units']
+SESSION_FIELDS = ['num_induc_val_steps', 'quant_at_indc_val', 'min_induc_val', 'num_types', 'custom_inducement',
+                  'eq_indc_val_step', 'step_diff_per_type', 'step_up_aft_ev_round', 'step_up_by',
+                  'starting_price','ending_price','total_rounds','timeout_seconds','presets_template',
+                  'seller_presets', 'seller_type1_presets', 'seller_type2_presets','buyer_presets',
+                  'buyer_type1_presets','buyer_type2_presets', 'num_bots', 'total_surplus']

@@ -18,9 +18,22 @@
     <br>
 
     <ul class="nav nav-tabs"> <!-- Tabs Panel -->
-        <li class="active"><a data-toggle="tab" href="#sub_info">Subject Info</a></li>
-        <li><a data-toggle="tab" href="#mkt_act">Market Activity</a></li>
-        <li><a data-toggle="tab" href="#mkt_hist">Market History</a></li>
+
+        <li class="active">
+            <a data-toggle="tab" href="#sub_info">Subject Info</a>
+        </li>
+
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">Market Activity</a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" data-toggle="tab" href="#mkt_act" onclick="show_per_sum()">Period Summary</a></li>
+              <li><a class="dropdown-item" data-toggle="tab" href="#mkt_act" onclick="show_exp_sum()">Experiment Summary</a></li>
+            </ul>
+        </li>
+
+        <li>
+            <a data-toggle="tab" href="#mkt_hist">Market History</a>
+        </li>
     </ul>
 
     <br>
@@ -54,11 +67,24 @@
         </div>
 
         <div id="mkt_act" class="tab-pane fade"> <!-- Content under the Market Activity Tab  -->
-            <div class="row">
-                <h4 style="text-align:center;vertical-align:middle">Summary Table</h4>
+            <div id='period_summary'>
+                <div class="row">
+                    <h4 style="text-align:center;vertical-align:middle">Period Summary Table</h4>
+                </div>
+                <div class="row" style="height:500px;overflow-y:scroll;">
+                    <table id="period_sum_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
+                </div>
             </div>
-            <div class="row" style="height:500px;overflow-y:scroll;">
-                <table id="period_sum_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
+            <div id='exp_summary'>
+                <div class="row">
+                    <h4 style="text-align:center;vertical-align:middle">Experiment Summary Table</h4>
+                </div>
+                <div class="row" style="height:500px;overflow-y:scroll;">
+                    TOTAL (MAX. POSSIBLE) SURPLUS (SAME IN EACH ROUND): <br> {{ total_surplus }}<br><br>
+                    ACTUAL SURPLUS IN EACH ROUND: <br> {{ actual_surplus | safe }}<br><br>
+                    EFFICIENCY IN EACH ROUND (in %): <br> {{ efficiency | safe }} <br>
+                    <table id="exp_sum_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
+                </div>
             </div>
         </div>
 
@@ -130,6 +156,8 @@
     let sellers_data = {{sellers_data | safe}}; // The data used to draw the supply curve based on induced values
     let total_rounds = {{total_rounds | safe}}; // Total number of periods/rounds in the experiment
     let players_data = {{players_data | safe}}; // Detailed data on players' role, inducements, trades, and payoff in the experiment
+    let actual_surplus = {{actual_surplus | safe}}; // Total number of periods/rounds in the experiment
+    let efficiency = {{efficiency | safe}}; // Detailed data on players' role, inducements, trades, and payoff in the experiment
 
     console.log('offers: ', offers);
     console.log('transactions: ', transactions);
@@ -137,6 +165,8 @@
     console.log('sellers_data: ', sellers_data);
     console.log('total_rounds: ', total_rounds);
     console.log('players_data: ', players_data);
+    console.log('actual_surplus: ', total_rounds);
+    console.log('efficiency: ', efficiency);
 
     let hist_text = document.getElementById('hist_text'); // Caption for the Navigation Tab indicating the period for which the information is displayed
     let description = document.getElementById('description'); // Description of the graph
@@ -168,6 +198,15 @@
         draw_graph(hist_round); // Draws the summary graph for the given period
     }
 
+    function show_per_sum(){
+        $("#period_summary").show();
+        $("#exp_summary").hide();
+    }
+
+    function show_exp_sum(){
+        $("#period_summary").hide();
+        $("#exp_summary").show();
+    }
 
     function reset_hist_nav_buttons(){
         hist_text.innerHTML = "Period " + hist_round;

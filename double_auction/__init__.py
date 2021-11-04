@@ -203,6 +203,20 @@ def vars_for_admin_report(subsession):
             buyers_data[i].sort(key=lambda x: x[1], reverse=True)
             buyers_data[i][subsession.session.num_induc_val_steps + 1][1] = 0
 
+    total_surplus = subsession.session.total_surplus
+    print(total_surplus)
+
+    actual_surplus = [0 for i in range(subsession.session.total_rounds)]
+    efficiency = [0 for i in range(subsession.session.total_rounds)]
+
+    for i in range(subsession.session.total_rounds):
+        for p in subsession.get_players():
+            actual_surplus[i] += p.in_round(i + 1).payoff_new
+        efficiency[i] = round(100*actual_surplus[i] / total_surplus, 2)
+
+    print(actual_surplus)
+    print(efficiency)
+
     players_data = [] # A nested list which is populated with detailed data on players' role, inducements, trades, and payoff in the experiment
 
     for p in subsession.get_players():
@@ -223,6 +237,9 @@ def vars_for_admin_report(subsession):
         offers=str(copy.deepcopy(Group.offers)),
         transactions=str(copy.deepcopy(Group.transactions)),
         players_data= str(copy.deepcopy(players_data)),
+        actual_surplus = str(copy.deepcopy(actual_surplus)),
+        efficiency = str(copy.deepcopy(efficiency)),
+        total_surplus = total_surplus
     )
 
 
@@ -235,69 +252,133 @@ def creating_session(subsession: Subsession):
         session.num_induc_val_steps = int(subsession.session.config['num_induc_val_steps']) # The number of steps of induced values for each type of buyers/sellers
         session.quant_at_indc_val = int(subsession.session.config['quant_at_indc_val']) # Quantity endowed at each induced value step.
         session.min_induc_val = float(subsession.session.config['min_induc_val']) # The lower threshold for induced values.
+        session.num_bots = int(subsession.session.config['num_bots'])
         session.num_types = int(subsession.session.config['num_types']) # The number of types of buyers/sellers. Either '1' or '2' types are currently supported.
         session.eq_indc_val_step = int(subsession.session.config['eq_indc_val_step']) # The number of steps of induced values for each type of buyers/sellers for which it is, in theory, optimal for them to carry out trade.
         session.step_diff_per_type = float(subsession.session.config['step_diff_per_type']) # The amount of difference between two consecutive steps of induced values for each type of buyers/sellers.
         session.step_up_aft_ev_round = int(subsession.session.config['step_up_aft_ev_round']) # The number of rounds after which induced values are shifted up.
         session.step_up_by = float(subsession.session.config['step_up_by']) # The amount by which induced value at each step will shift up when the shift takes place.
+        session.total_rounds = int(subsession.session.config['num_rounds'])  # To make total number of rounds/trading periods configurable by the teacher, these are picked up from session configs
+        session.timeout_seconds = int(subsession.session.config['timeout_seconds'])  # The amount of time per trading period is also configurable
+        session.custom_inducement = (subsession.session.config['custom_inducement'])
 
-        session.starting_price = random.randint(session.min_induc_val, session.min_induc_val + 10) # Randomly generates the the lowest induced value for the seller which is within 10 ECUs of 'session.min_induc_val'
+        if session.custom_inducement == False:
+            session.starting_price = random.randint(session.min_induc_val, session.min_induc_val + 10) # Randomly generates the the lowest induced value for the seller which is within 10 ECUs of 'session.min_induc_val'
 
-        # This sets the maximum induced value for buyers which ensures, theoretically, that the vertical intersection between the supply and demand curves takes place at an aggregate quantity such that at this equilibrium level, everyone trades 'session.eq_indc_val_step'
-        if session.num_types == 2:
-            session.ending_price = session.starting_price + 1*(session.num_types*session.step_diff_per_type*session.eq_indc_val_step) - 2
+            # This sets the maximum induced value for buyers which ensures, theoretically, that the vertical intersection between the supply and demand curves takes place at an aggregate quantity such that at this equilibrium level, everyone trades 'session.eq_indc_val_step'
+            if session.num_types == 2:
+                session.ending_price = session.starting_price + 1*(session.num_types*session.step_diff_per_type*session.eq_indc_val_step) - 2
+            else:
+                session.ending_price = session.starting_price + 2*(session.num_types*session.step_diff_per_type*session.eq_indc_val_step) - 2
+
+            # The 'presets_template' is used to generate a nested list (iterated over, first, the number of 'steps' of induced values, and second, over the number of rounds/trading periods in the experiment). This list will first be populated by induced values and endowed quantities at each induced value, and later, it will be populated by user data, as the experiment progresses
+            # The entries in each index of each indiviudal list are as follows: 0.induced value (assinged later), 1.quantity endowed, 2.quantity sold/purchased, 3.quantity available, 4.order type (will be populated by either 'limit' or 'market'), 5.price, 6.unit profit, 7.total profit
+            # The 'if' statement below checks for whether a fixed quantity is to be endowed at each step of induced values or not.
+            if session.quant_at_indc_val == 0:
+                session.presets_template = [[[0, session.num_induc_val_steps-i, 0, session.num_induc_val_steps-i, '' , 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
+            else:
+                session.presets_template = [[[0, session.quant_at_indc_val, 0, session.quant_at_indc_val, '' , 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
+
+            # If there are two types each of sellers and buyers, then each buyer/seller is assigned to one of these types. The difference between these types is that at each 'step', type 2 sellers' induced value is 'session.step_diff_per_type/2' ECUs higher than type 1 sellers and type 2 buyers' induced value is 'session.step_diff_per_type/2' ECUs lower than type 1 buyers (This distinction between types doesn't disturb the predicted equilibrium quantity)
+            if session.num_types == 2:
+                session.seller_type1_presets = copy.deepcopy(session.presets_template)
+                session.seller_type2_presets = copy.deepcopy(session.presets_template)
+                session.buyer_type1_presets = copy.deepcopy(session.presets_template)
+                session.buyer_type2_presets = copy.deepcopy(session.presets_template)
+
+                x = 1
+                y = 0
+                for i in range(session.total_rounds):
+                    if x % (session.step_up_aft_ev_round+1) == 0: # This block of code is responsible for shifting up the induced values after every given number of rounds
+                        x = 1
+                        y += 1
+                    for j in range(session.num_induc_val_steps):
+                        session.seller_type1_presets[i][j][0] = session.starting_price + (session.step_up_by * y) + (session.step_diff_per_type * j)
+                        session.seller_type2_presets[i][j][0] = session.starting_price + (session.step_up_by * y) + (session.step_diff_per_type * j) + (session.step_diff_per_type/2)
+                        session.buyer_type1_presets[i][j][0] = session.ending_price + (session.step_up_by * y) - (session.step_diff_per_type * j)
+                        session.buyer_type2_presets[i][j][0] = session.ending_price + (session.step_up_by * y) - (session.step_diff_per_type * j) - (session.step_diff_per_type/2)
+                    x += 1
+            else: # If there is only one type each of sellers and buyers then the following block executes
+                session.seller_presets = copy.deepcopy(session.presets_template)
+                session.buyer_presets = copy.deepcopy(session.presets_template)
+
+                x = 1
+                y = 0
+                for i in range(session.total_rounds):
+                    if x % (session.step_up_aft_ev_round+1) == 0:
+                        x = 1
+                        y += 1
+                    for j in range(session.num_induc_val_steps):
+                        session.seller_presets[i][j][0] = session.starting_price + (session.step_up_by * y) + (session.step_diff_per_type * j)
+                        session.buyer_presets[i][j][0] = session.ending_price + (session.step_up_by * y) - (session.step_diff_per_type * j)
+                    x += 1
         else:
-            session.ending_price = session.starting_price + 2*(session.num_types*session.step_diff_per_type*session.eq_indc_val_step) - 2
+            if session.num_types == 2:
+                session.seller_type1_presets = [[[subsession.session.config['inducement_round1_seller_type1'][i][0], subsession.session.config['inducement_round1_seller_type1'][i][1], 0, subsession.session.config['inducement_round1_seller_type1'][i][1], '', 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
+                session.seller_type2_presets = [[[subsession.session.config['inducement_round1_seller_type2'][i][0], subsession.session.config['inducement_round1_seller_type2'][i][1], 0, subsession.session.config['inducement_round1_seller_type2'][i][1], '', 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
+                session.buyer_type1_presets = [[[subsession.session.config['inducement_round1_buyer_type1'][i][0], subsession.session.config['inducement_round1_buyer_type1'][i][1], 0, subsession.session.config['inducement_round1_buyer_type1'][i][1], '', 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
+                session.buyer_type2_presets = [[[subsession.session.config['inducement_round1_buyer_type2'][i][0], subsession.session.config['inducement_round1_buyer_type2'][i][1], 0, subsession.session.config['inducement_round1_buyer_type2'][i][1], '', 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
 
-        session.total_rounds = int(subsession.session.config['num_rounds']) # To make total number of rounds/trading periods configurable by the teacher, these are picked up from session configs
-        session.timeout_seconds = int(subsession.session.config['timeout_seconds']) # The amount of time per trading period is also configurable
+                s_t1_preset = copy.deepcopy(session.seller_type1_presets)
+                s_t2_preset = copy.deepcopy(session.seller_type2_presets)
+                b_t1_preset = copy.deepcopy(session.buyer_type1_presets)
+                b_t2_preset = copy.deepcopy(session.buyer_type2_presets)
 
-        # The 'presets_template' is used to generate a nested list (iterated over, first, the number of 'steps' of induced values, and second, over the number of rounds/trading periods in the experiment). This list will first be populated by induced values and endowed quantities at each induced value, and later, it will be populated by user data, as the experiment progresses
-        # The entries in each index of each indiviudal list are as follows: 0.induced value (assinged later), 1.quantity endowed, 2.quantity sold/purchased, 3.quantity available, 4.order type (will be populated by either 'limit' or 'market'), 5.price, 6.unit profit, 7.total profit
-        # The 'if' statement below checks for whether a fixed quantity is to be endowed at each step of induced values or not.
-        if session.quant_at_indc_val == 0:
-            session.presets_template = [[[0, session.num_induc_val_steps-i, 0, session.num_induc_val_steps-i, '' , 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
-        else:
-            session.presets_template = [[[0, session.quant_at_indc_val, 0, session.quant_at_indc_val, '' , 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
+                x = 1
+                y = 0
+                for i in range(session.total_rounds):
+                    if x % (session.step_up_aft_ev_round + 1) == 0:  # This block of code is responsible for shifting up the induced values after every given number of rounds
+                        x = 1
+                        y += 1
+                    for j in range(session.num_induc_val_steps):
+                        session.seller_type1_presets[i][j][0] = s_t1_preset[i][j][0] + session.step_up_by * y
+                        session.seller_type2_presets[i][j][0] = s_t2_preset[i][j][0] + session.step_up_by * y
+                        session.buyer_type1_presets[i][j][0] = b_t1_preset[i][j][0] + session.step_up_by * y
+                        session.buyer_type2_presets[i][j][0] = b_t2_preset[i][j][0] + session.step_up_by * y
+                    x += 1
+            else:  # If there is only one type each of sellers and buyers then the following block executes
+                session.seller_presets = [[[subsession.session.config['inducement_round1_seller_type1'][i][0], subsession.session.config['inducement_round1_seller_type1'][i][1], 0, subsession.session.config['inducement_round1_seller_type1'][i][1], '', 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
+                session.buyer_presets = [[[subsession.session.config['inducement_round1_buyer_type1'][i][0], subsession.session.config['inducement_round1_buyer_type1'][i][1], 0, subsession.session.config['inducement_round1_buyer_type1'][i][1], '', 0, 0, 0] for i in range(session.num_induc_val_steps)] for j in range(session.total_rounds)]
 
-        # If there are two types each of sellers and buyers, then each buyer/seller is assigned to one of these types. The difference between these types is that at each 'step', type 2 sellers' induced value is 'session.step_diff_per_type/2' ECUs higher than type 1 sellers and type 2 buyers' induced value is 'session.step_diff_per_type/2' ECUs lower than type 1 buyers (This distinction between types doesn't disturb the predicted equilibrium quantity)
+                s_preset = copy.deepcopy(session.seller_presets)
+                b_preset = copy.deepcopy(session.buyer_presets)
+
+                x = 1
+                y = 0
+                for i in range(session.total_rounds):
+                    if x % (session.step_up_aft_ev_round + 1) == 0:
+                        x = 1
+                        y += 1
+                    for j in range(session.num_induc_val_steps):
+                        session.seller_presets[i][j][0] = s_preset[i][j][0] + session.step_up_by * y
+                        session.buyer_presets[i][j][0] = b_preset[i][j][0] + session.step_up_by * y
+                    x += 1
+
+        num_players = session.num_participants
+
+        total_surplus = 0
+
         if session.num_types == 2:
-            session.seller_type1_presets = copy.deepcopy(session.presets_template)
-            session.seller_type2_presets = copy.deepcopy(session.presets_template)
-            session.buyer_type1_presets = copy.deepcopy(session.presets_template)
-            session.buyer_type2_presets = copy.deepcopy(session.presets_template)
+            for i in range(session.eq_indc_val_step):
+                total_surplus += (session.buyer_type1_presets[0][i][0] - session.seller_type1_presets[0][i][0]) * session.buyer_type1_presets[0][i][1] * num_players / 4
+                total_surplus += (session.buyer_type2_presets[0][i][0] - session.seller_type2_presets[0][i][0]) * session.buyer_type2_presets[0][i][1] * num_players / 4
+        else:
+            for i in range(session.eq_indc_val_step):
+                total_surplus += (session.buyer_presets[0][i][0] - session.seller_presets[0][i][0]) * session.buyer_presets[0][i][1] * num_players / 2
 
-            x = 1
-            y = 0
-            for i in range(session.total_rounds):
-                if x % (session.step_up_aft_ev_round+1) == 0: # This block of code is responsible for shifting up the induced values after every given number of rounds
-                    x = 1
-                    y += 1
-                for j in range(session.num_induc_val_steps):
-                    session.seller_type1_presets[i][j][0] = session.starting_price + (session.step_up_by * y) + (session.step_diff_per_type * j)
-                    session.seller_type2_presets[i][j][0] = session.starting_price + (session.step_up_by * y) + (session.step_diff_per_type * j) + (session.step_diff_per_type/2)
-                    session.buyer_type1_presets[i][j][0] = session.ending_price + (session.step_up_by * y) - (session.step_diff_per_type * j)
-                    session.buyer_type2_presets[i][j][0] = session.ending_price + (session.step_up_by * y) - (session.step_diff_per_type * j) - (session.step_diff_per_type/2)
-                x += 1
-        else: # If there is only one type each of sellers and buyers then the following block executes
-            session.seller_presets = copy.deepcopy(session.presets_template)
-            session.buyer_presets = copy.deepcopy(session.presets_template)
-
-            x = 1
-            y = 0
-            for i in range(session.total_rounds):
-                if x % (session.step_up_aft_ev_round+1) == 0:
-                    x = 1
-                    y += 1
-                for j in range(session.num_induc_val_steps):
-                    session.seller_presets[i][j][0] = session.starting_price + (session.step_up_by * y) + (session.step_diff_per_type * j)
-                    session.buyer_presets[i][j][0] = session.ending_price + (session.step_up_by * y) - (session.step_diff_per_type * j)
-                x += 1
+        session.total_surplus = total_surplus
 
         # The following block of code assigns values to variables at the participant level (instead of player level) to ensure that the beginning-of-round values for these variables don't change across rounds or sub-sessions
         for player in subsession.get_players():
             participant = player.participant
             participant.id_in_group = player.id_in_group
+
+            participant.tot_eq_units = 0
+
+            if participant.id_in_group <= session.num_bots:
+                participant.is_bot = True
+            else:
+                participant.is_bot = False
 
             participant.is_buyer = participant.id_in_group % 2 != 0 # Ensures equal distribution of even-numbered participants into buyers and sellers
 
@@ -328,6 +409,9 @@ def creating_session(subsession: Subsession):
                     participant.type = 1
                     participant.inducement = str(copy.deepcopy(session.seller_presets))
 
+            for i in range(session.eq_indc_val_step):
+                participant.tot_eq_units += int(ast.literal_eval(participant.inducement)[0][i][1])
+
     # I couldn't figure how to reference session level variables in the 'live_method' below, that's why, at the beginning of each round, I am using group level variables to pick these up
     Group.total_rounds = subsession.session.total_rounds # The total number of trading periods in a session
     Group.timeout_seconds = subsession.session.timeout_seconds # The number of seconds for which subjects can trade in each trading period
@@ -338,6 +422,7 @@ def creating_session(subsession: Subsession):
     Group.transactions = str(copy.deepcopy([])) # A detailed nested list of completed trades during the experiment (Primarily used for the admin_report page)
     Group.bids = str(copy.deepcopy([])) # A less-detailed list of bids (Primarily used for populating the bid/ask table)
     Group.asks = str(copy.deepcopy([])) # A less-detailed list of asks (Primarily used for populating the bid/ask table)
+    Group.hide_total_rounds = subsession.session.config['hide_total_rounds']
 
     # The following block of code ensures that at the beginning of each round/sub-session, the session-wide participant variables are copied for each player (Some of these are later updated and re-populated with data from all previous rounds)
     for player in subsession.get_players():
@@ -345,9 +430,11 @@ def creating_session(subsession: Subsession):
         player.current_offer = 0
         player.id_in_group = participant.id_in_group
         player.id_by_role = participant.id_by_role
+        player.is_bot = participant.is_bot
         player.is_buyer = participant.is_buyer
         player.type = participant.type
         player.inducement = participant.inducement
+        player.tot_eq_units = participant.tot_eq_units
 
 
 
@@ -363,12 +450,15 @@ class Group(BaseGroup):
     transactions = models.LongStringField() # A nested list which keeps track of all completed transactions in the experiment
     bids = models.LongStringField() # A nested list of all outstanding bids at a given point in time
     asks = models.LongStringField() # A nested list of all outstanding asks at a given point in time
+    hide_total_rounds = models.BooleanField()
+    #total_surplus = models.FloatField()
 
 
 
 
 class Player(BasePlayer):
     is_buyer = models.BooleanField() # 'True' if buyer, 'False' if seller
+    is_bot = models.BooleanField(initial=False)
     id_by_role = models.IntegerField() # Used to distribute buyers and sellers evenly across each of their respective types
     type = models.IntegerField() # Used to distinguish between type 1 and type 2 buyers/sellers
     inducement = models.LongStringField() # All the relevant trade related data for each player is stored in this nested list
@@ -377,6 +467,7 @@ class Player(BasePlayer):
     order_type = models.StringField() # Records whether it is a 'limit' or a 'market' order
     session_payoff = models.FloatField(initial=0) # The aggregate payoff/earnings for the player summed over all previous rounds/trading periods
     payoff_new = models.FloatField(initial=0) # The period earnings for the player (for some reason the built-in payoff variable was storing the amount rounded to the nearest integer value as float(payoff) did not return floating point numbers)
+    tot_eq_units = models.IntegerField()
 
 
 
@@ -405,8 +496,21 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
     event = None # Used to populate the 'Messages' div on the Trading page after a player submits a limit order (i.e. a bid or an ask)
     agg_units_traded = 0
 
-    bids_new = ast.literal_eval(Group.bids) # Stores the list of all outstanding bid prices
-    asks_new = ast.literal_eval(Group.asks) # Stores the list of all outstanding ask prices
+    bids_incl_outstanding = ast.literal_eval(Group.bids) # Stores the list of all outstanding bid prices for the current round as well as the outstanding bids from the previous round
+    asks_incl_outstanding = ast.literal_eval(Group.asks) # Stores the list of all outstanding ask prices for the current round as well as the outstanding asks from the previous round
+
+    bids_new = []  # Stores the list of all outstanding bid prices for the current round only
+    asks_new = [] # Stores the list of all outstanding ask prices for the current round only
+
+    if len(bids_incl_outstanding) != 0:
+        for i in range(len(bids_incl_outstanding)):
+            if bids_incl_outstanding[i][0] == player.round_number: #Appends only the outstanding bids from the current round to the 'bids_new' list
+                bids_new.append(bids_incl_outstanding[i])
+
+    if len(asks_incl_outstanding) != 0:
+        for i in range(len(asks_incl_outstanding)):
+            if asks_incl_outstanding[i][0] == player.round_number: #Appends only the outstanding asks from the current round to the 'asks_new' list
+                asks_new.append(asks_incl_outstanding[i])
 
     offers = ast.literal_eval(Group.offers) # Populated with details about all of the bid/ask offers
     transactions = ast.literal_eval(Group.transactions) # Populated with details about all completed transactions
@@ -468,7 +572,11 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
         #The following three variables are used to record the time on the countdown timer when a buyer/seller submits a limit order (i.e. bid/ask)
         event_sec = Group.timeout_seconds + group.start_timestamp - time.time()
         event_min,event_sec = divmod(event_sec, 60)
-        time_event = str(int(event_min)) + ":" + str(int(event_sec)).zfill(2)
+
+        if Group.timeout_seconds + group.start_timestamp - time.time() > 0:
+            time_event = str(int(event_min)) + ":" + str(int(event_sec)).zfill(2)
+        else:
+            time_event = str(00) + ":" + str(00).zfill(2)
 
         event = dict(id_sender=player.id_in_group, time_event=time_event,
                      offer_amt=player.current_offer, offer_qt=player.current_quant,order_type=type_of_order)
@@ -496,7 +604,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
         for i in range(player.current_quant): # Potential trades are checked for at a unit by unit level as one of the buyer/seller pair could be different for a multi-unit offer
             match_new = [] # Clears existing matches/trades
 
-            if type_of_order == 'limit':
+            if player.order_type == 'limit':
                 if player.is_buyer and len(asks_new) > 0: # A match could be found for a given bid if there are any outstanding asks
                     if player.current_offer >= min(asks_new, key=lambda x: x[2])[2]: # Furthermore, trade can occur only if a given bid exceeds the minimum outstanding ask price
                         match_new = find_match_new(buyers=[player], sellers=sellers, offer_type='bid', bids_new=bids_new,
@@ -602,7 +710,10 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                 # The following three variables are used to record the time on the countdown timer when a trade takes place
                 tx_sec = Group.timeout_seconds + group.start_timestamp - time.time()
                 tx_min, tx_sec = divmod(tx_sec, 60)
-                time_tx = str(int(tx_min)) + ":" + str(int(tx_sec)).zfill(2)
+                if Group.timeout_seconds + group.start_timestamp - time.time() > 0:
+                    time_tx = str(int(tx_min)) + ":" + str(int(tx_sec)).zfill(2)
+                else:
+                    time_tx = str(00) + ":" + str(00).zfill(2)
 
                 total_units += 1 # Total units traded counter incremented by 1 after a trade has taken place
 
@@ -759,10 +870,11 @@ class Trading(Page):
             player.session_payoff = 0
 
         return dict(
-            id_in_group=player.id_in_group, is_buyer=player.is_buyer, id_by_role=player.id_by_role,
-            type=player.type, cur_round=player.round_number, total_rounds=Group.total_rounds,
+            id_in_group=player.id_in_group, is_buyer=player.is_buyer, is_bot=player.is_bot, tot_eq_units=player.tot_eq_units,
+            id_by_role=player.id_by_role, type=player.type, cur_round=player.round_number, total_rounds=Group.total_rounds,
             inducement=ast.literal_eval(player.inducement), session_payoff=player.session_payoff,
             multiple_unit_trading=Group.multiple_unit_trading, relative_price_imp = Group.relative_price_imp,
+            hide_tot_rounds = Group.hide_total_rounds, timeout_seconds = Group.timeout_seconds,
         )
 
     @staticmethod
