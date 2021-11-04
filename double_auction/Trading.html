@@ -289,13 +289,15 @@
             set_things_up(); //Prepares all of the data to be presented to the player on the screen and displays it
 
             if(is_bot){
+                document.getElementById("my_offer").disabled = true;
+                document.getElementById("my_quant1").disabled = true;
                 document.getElementById('btn-mkt-order').style.visibility="hidden";
                 document.getElementById('btn-lim-order').style.visibility="hidden";
                 document.getElementById('page_title').innerHTML = "Trading Phase " + "&#128314;" + "<red>" + " THIS PLAYER IS A BOT!" + "</red>";
 
                 var precision = 100; // 2 decimals
-                var max_int = ((timeout_seconds)/tot_eq_units)+5
-                var min_int = ((timeout_seconds)/tot_eq_units)-5
+                var max_int = ((timeout_seconds)/tot_eq_units) + 0.05*timeout_seconds
+                var min_int = ((timeout_seconds)/tot_eq_units) - 0.05*timeout_seconds
                 var interval = Math.floor(Math.random() * (max_int - min_int + 1)) + min_int;
 
                 setInterval(function(){

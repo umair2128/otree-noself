@@ -204,18 +204,48 @@ def vars_for_admin_report(subsession):
             buyers_data[i][subsession.session.num_induc_val_steps + 1][1] = 0
 
     total_surplus = subsession.session.total_surplus
-    print(total_surplus)
 
-    actual_surplus = [0 for i in range(subsession.session.total_rounds)]
+    num_bids = [0 for i in range(subsession.session.total_rounds)]
+    num_asks = [0 for i in range(subsession.session.total_rounds)]
+
+    contracts = [0 for i in range(subsession.session.total_rounds)]
+    volume = [0 for i in range(subsession.session.total_rounds)]
+
+    avg_price = [0 for i in range(subsession.session.total_rounds)]
+
+    total_actual_surplus = [0 for i in range(subsession.session.total_rounds)]
+    buyers_actual_surplus = [0 for i in range(subsession.session.total_rounds)]
+    sellers_actual_surplus = [0 for i in range(subsession.session.total_rounds)]
     efficiency = [0 for i in range(subsession.session.total_rounds)]
 
     for i in range(subsession.session.total_rounds):
-        for p in subsession.get_players():
-            actual_surplus[i] += p.in_round(i + 1).payoff_new
-        efficiency[i] = round(100*actual_surplus[i] / total_surplus, 2)
+        for j in range(len(ast.literal_eval(Group.offers))):
+            num_bids[i] += 1 if ast.literal_eval(Group.offers)[j][0] == i+1 and ast.literal_eval(Group.offers)[j][5] == "bid" else 0
+            num_asks[i] += 1 if ast.literal_eval(Group.offers)[j][0] == i+1 and ast.literal_eval(Group.offers)[j][5] == "ask" else 0
 
-    print(actual_surplus)
-    print(efficiency)
+    for i in range(subsession.session.total_rounds):
+        for j in range(len(ast.literal_eval(Group.transactions))):
+            contracts[i] += 1 if ast.literal_eval(Group.transactions)[j][0] == i+1 else 0
+            volume[i] += ast.literal_eval(Group.transactions)[j][8] if ast.literal_eval(Group.transactions)[j][0] == i+1 else 0
+
+    for i in range(subsession.session.total_rounds):
+        numerator = 0
+        denominator = 0
+        for j in range(len(ast.literal_eval(Group.transactions))):
+            numerator += (ast.literal_eval(Group.transactions)[j][7]*ast.literal_eval(Group.transactions)[j][8]) if ast.literal_eval(Group.transactions)[j][0] == i+1 else 0
+            denominator += ast.literal_eval(Group.transactions)[j][8] if ast.literal_eval(Group.transactions)[j][0] == i+1 else 0
+        if denominator != 0:
+            avg_price[i] = numerator/denominator
+
+    for i in range(subsession.session.total_rounds):
+        for p in subsession.get_players():
+            total_actual_surplus[i] += p.in_round(i + 1).payoff_new
+            if p.is_buyer:
+                buyers_actual_surplus[i] += p.in_round(i + 1).payoff_new
+            else:
+                sellers_actual_surplus[i] += p.in_round(i + 1).payoff_new
+        efficiency[i] = round(100*total_actual_surplus[i] / total_surplus, 2)
+
 
     players_data = [] # A nested list which is populated with detailed data on players' role, inducements, trades, and payoff in the experiment
 
@@ -237,7 +267,14 @@ def vars_for_admin_report(subsession):
         offers=str(copy.deepcopy(Group.offers)),
         transactions=str(copy.deepcopy(Group.transactions)),
         players_data= str(copy.deepcopy(players_data)),
-        actual_surplus = str(copy.deepcopy(actual_surplus)),
+        num_bids=str(copy.deepcopy(num_bids)),
+        num_asks=str(copy.deepcopy(num_asks)),
+        contracts=str(copy.deepcopy(contracts)),
+        volume=str(copy.deepcopy(volume)),
+        avg_price=str(copy.deepcopy(avg_price)),
+        total_actual_surplus = str(copy.deepcopy(total_actual_surplus)),
+        buyers_actual_surplus=str(copy.deepcopy(buyers_actual_surplus)),
+        sellers_actual_surplus=str(copy.deepcopy(sellers_actual_surplus)),
         efficiency = str(copy.deepcopy(efficiency)),
         total_surplus = total_surplus
     )
@@ -901,7 +938,7 @@ class MyWaitPage(Page):
     def js_vars(player: Player):
         return dict(
             is_buyer=player.is_buyer, cur_round=player.round_number, total_rounds=Group.total_rounds, period_payoff=player.payoff_new,
-            session_payoff=player.session_payoff, wait_timeout=Group.wait_timeout_seconds
+            session_payoff=player.session_payoff, wait_timeout=Group.wait_timeout_seconds, hide_tot_rounds = Group.hide_total_rounds
         )
 
 

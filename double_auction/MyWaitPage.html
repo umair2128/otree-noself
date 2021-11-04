@@ -52,6 +52,7 @@
         let total_rounds = js_vars.total_rounds;
         let period_earnings = js_vars.period_payoff;
         let session_earnings = js_vars.session_payoff;
+        let hide_tot_rounds = js_vars.hide_tot_rounds;
 
 
         window.onload = function () {
@@ -61,7 +62,7 @@
                 show_timer(timeout);
             },1000);
             document.getElementById('role').innerHTML = "<b>" + "Your Role: " + "</b>" + ((is_buyer) ? ("Buyer") : ("Seller"))
-            document.getElementById('period').innerHTML = "<b>" + "Period " + "</b>" + this_round + "<b>" + " of " + "</b>" + total_rounds + "<b>" + " just ended" + "</b>"
+            document.getElementById('period').innerHTML = "<b>" + "Period " + "</b>" + this_round + ((hide_tot_rounds) ? ("<b>" + " just ended" + "</b>") : ("<b>" + " of " + "</b>" + total_rounds + "<b>" + " just ended" + "</b>"))
             document.getElementById('period_earnings').innerHTML = "<b>" + "Earnings in Period " + this_round + ": " + "</b>" + Number(period_earnings).toFixed(2)
             document.getElementById('session_earnings').innerHTML = "<b>" + "Session Earnings: " + "</b>" + Number(session_earnings).toFixed(2)
             document.getElementById('timeout_text').innerHTML = "Period " + (this_round+1) + " will begin in:"

@@ -20,7 +20,7 @@
     <ul class="nav nav-tabs"> <!-- Tabs Panel -->
 
         <li class="active">
-            <a data-toggle="tab" href="#sub_info">Subject Info</a>
+            <a data-toggle="tab" href="#sub_info" onclick='$("#nav_panel").show()'>Subject Info</a>
         </li>
 
         <li class="nav-item dropdown">
@@ -32,13 +32,13 @@
         </li>
 
         <li>
-            <a data-toggle="tab" href="#mkt_hist">Market History</a>
+            <a data-toggle="tab" href="#mkt_hist" onclick='$("#nav_panel").show()'>Market History</a>
         </li>
     </ul>
 
     <br>
 
-    <div class="row" style="vertical-align:middle;align-items:center;justify-content: center;"> <!-- Navigation Buttons Panel -->
+    <div class="row" id="nav_panel" style="vertical-align:middle;align-items:center;justify-content: center;"> <!-- Navigation Buttons Panel -->
         <div class="col-1" style="border: none;">
             <button class="btn-sm btn-primary" type="button" id="btn-first"><i class="bi-chevron-double-left"></i></button>
         </div>
@@ -80,9 +80,6 @@
                     <h4 style="text-align:center;vertical-align:middle">Experiment Summary Table</h4>
                 </div>
                 <div class="row" style="height:500px;overflow-y:scroll;">
-                    TOTAL (MAX. POSSIBLE) SURPLUS (SAME IN EACH ROUND): <br> {{ total_surplus }}<br><br>
-                    ACTUAL SURPLUS IN EACH ROUND: <br> {{ actual_surplus | safe }}<br><br>
-                    EFFICIENCY IN EACH ROUND (in %): <br> {{ efficiency | safe }} <br>
                     <table id="exp_sum_table" class="table table-sm" style="table-layout:fixed;height:6px;width:100%;border-collapse:collapse;"><thead></thead><tbody></tbody></table>
                 </div>
             </div>
@@ -156,7 +153,14 @@
     let sellers_data = {{sellers_data | safe}}; // The data used to draw the supply curve based on induced values
     let total_rounds = {{total_rounds | safe}}; // Total number of periods/rounds in the experiment
     let players_data = {{players_data | safe}}; // Detailed data on players' role, inducements, trades, and payoff in the experiment
-    let actual_surplus = {{actual_surplus | safe}}; // Total number of periods/rounds in the experiment
+    let total_actual_surplus = {{total_actual_surplus | safe}}; // Total number of periods/rounds in the experiment
+    let volume = {{volume | safe}}; // The data used to draw the supply curve based on induced values
+    let contracts = {{contracts | safe}}; // The data used to draw the supply curve based on induced values
+    let avg_price = {{avg_price | safe}}; // The data used to draw the supply curve based on induced values
+    let num_bids = {{num_bids | safe}}; // The data used to draw the supply curve based on induced values
+    let num_asks = {{num_asks | safe}}; // The data used to draw the supply curve based on induced values
+    let buyers_actual_surplus = {{buyers_actual_surplus | safe}}; // Total number of periods/rounds in the experiment
+    let sellers_actual_surplus = {{sellers_actual_surplus | safe}}; // Total number of periods/rounds in the experiment
     let efficiency = {{efficiency | safe}}; // Detailed data on players' role, inducements, trades, and payoff in the experiment
 
     console.log('offers: ', offers);
@@ -192,6 +196,7 @@
         set_eq(hist_round); // This determines the equilibrium price range and the equilibrium quantity given the induced values in the period in question
         prepare_offers_data(hist_round); // Prepares the data to display 'bids' and 'asks' as scatter points on the summary graph for the given period
         prepare_transaction_data(hist_round); // Prepares the data to display 'buys' and 'sells' as scatter points on the summary graph for the given period
+        populate_exp_sum_table();
         populate_sub_info_table(hist_round); // Populates the subjects information table which displays, for each subject, their id, role, units endowed, units traded, period and cumulative payoffs in the given period
         populate_period_sum_table(hist_round); // Populates the period summary table which displays an ordered list (by time left) of offers (bids/asks) and transactions (purchases/sales) which have taken place in the given period
         upd_pred_eq_box(); // Shows the predicted equilibrium price range and quantity in a box on the top-left of the summary graph
@@ -201,11 +206,13 @@
     function show_per_sum(){
         $("#period_summary").show();
         $("#exp_summary").hide();
+        $("#nav_panel").show();
     }
 
     function show_exp_sum(){
         $("#period_summary").hide();
         $("#exp_summary").show();
+        $("#nav_panel").hide();
     }
 
     function reset_hist_nav_buttons(){
@@ -294,6 +301,47 @@
 
         console.log('buys: ', buys);
         console.log('sells: ', sells);
+    }
+
+    function populate_exp_sum_table(){
+        $("#exp_sum_table tr").remove();
+        let txt_header = "";
+        txt_header += "<tr>";
+        txt_header += "<th style='text-align:center;'>Period</th>"
+        txt_header += "<th style='text-align:center;'>Contracts</th>"
+        txt_header += "<th style='text-align:center;'>Volume</th>"
+        txt_header += "<th style='text-align:center;'>Mean Price</th>"
+        txt_header += "<th style='text-align:center;'>Bids</th>"
+        txt_header += "<th style='text-align:center;'>Asks</th>"
+        txt_header += "<th style='text-align:center;'>Eq. Price</th>"
+        txt_header += "<th style='text-align:center;'>Efficiency</th>"
+        txt_header += "</tr>"
+        $('#exp_sum_table thead').append(txt_header);
+
+        let txt_row = "";
+        for (var i = 0; i < total_rounds; i++){
+            txt_row += "<tr>";
+            txt_row += "<td style='vertical-align:middle;text-align:center;'>" + eval(i+1) + "</td>";
+            txt_row += "<td style='vertical-align:middle;text-align:center;'>" + contracts[i] + "</td>";
+            txt_row += "<td style='vertical-align:middle;text-align:center;'>" + volume[i] + "</td>";
+            txt_row += "<td style='vertical-align:middle;text-align:center;'>" + Number(avg_price[i]).toFixed(2) + "</td>";
+            txt_row += "<td style='vertical-align:middle;text-align:center;'>" + num_bids[i] + "</td>";
+            txt_row += "<td style='vertical-align:middle;text-align:center;'>" + num_asks[i] + "</td>";
+
+            price_l = 0
+            price_h = 0
+
+            for (var j = 0; j < buyers_data[i].length; j++){
+                if (buyers_data[i][j][1]<sellers_data[i][j][1]){break;} // The equilibrium step of induced values is such that at this step, buyers' induced value is less than the sellers' induced value
+                price_l = buyers_data[i][j+1][1];
+                price_h = sellers_data[i][j+1][1];
+            }
+
+            txt_row += "<td style='vertical-align:middle;text-align:center;'>" + Number(price_l).toFixed(2) + " - " + Number(price_h).toFixed(2) + "</td>";
+            txt_row += "<td style='vertical-align:middle;text-align:center;'>" + Number(efficiency[i]).toFixed(2) + "%" + "</td>";
+            txt_row += "</tr>";
+        }
+        $('#exp_sum_table tbody').append(txt_row);
     }
 
 
@@ -593,6 +641,7 @@
         prepare_offers_data(hist_round);
         prepare_transaction_data(hist_round);
         draw_graph(hist_round);
+        populate_exp_sum_table();
         populate_sub_info_table(hist_round);
         populate_period_sum_table(hist_round);
         upd_pred_eq_box();
@@ -612,6 +661,7 @@
         set_eq(hist_round);
         prepare_offers_data(hist_round);
         prepare_transaction_data(hist_round);
+        populate_exp_sum_table();
         populate_sub_info_table(hist_round);
         populate_period_sum_table(hist_round);
         upd_pred_eq_box();
@@ -632,6 +682,7 @@
         set_eq(hist_round);
         prepare_offers_data(hist_round);
         prepare_transaction_data(hist_round);
+        populate_exp_sum_table();
         populate_sub_info_table(hist_round);
         populate_period_sum_table(hist_round);
         upd_pred_eq_box();
@@ -650,6 +701,7 @@
         set_eq(hist_round);
         prepare_offers_data(hist_round);
         prepare_transaction_data(hist_round);
+        populate_exp_sum_table();
         populate_sub_info_table(hist_round);
         populate_period_sum_table(hist_round);
         upd_pred_eq_box();
