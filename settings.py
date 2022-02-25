@@ -9,14 +9,14 @@ SESSION_CONFIGS = [
         num_rounds=20,
         num_demo_participants=6,
         num_bots=6,
-        timeout_seconds=120,
+        timeout_seconds=30,
         wait_timeout_seconds=5,
         multiple_unit_trading=False,
         relative_price_imp="self",
         num_types=1,
         custom_inducement=True,
         num_induc_val_steps=6,
-        quant_at_indc_val=3,
+        quant_at_indc_val=1,
         eq_indc_val_step=5,
         step_diff_per_type=3,
         min_induc_val=20,
@@ -30,9 +30,15 @@ SESSION_CONFIGS = [
         This is the commodity double auction application. The following passage discusses the configurable parameters for
         this app. 
         """
+        """hide_total_rounds: Set to 'True' (without quotes) if subjects are NOT to be shown the total number of periods
+        for which the they will participate in the auction, otherwise set to 'False' (without quotes).
+        """            
         """num_rounds: The number of periods for which the subjects will participate in the commodity double auction. 
         Please enter an integer value of 1 or more. 
         """
+        """num_bots: This determines the number of AI players or 'Bots'. Please enter an integer value which is no more
+        than the total number of participants. Enter '0' (without quotes) if all participants are human subjects. 
+        """            
         """timeout_seconds: The amount of time (in seconds) each subject will have in every period for carrying out trades.
         """
         """wait_timeout_seconds: The amount of time (in seconds) for which the subjects would have to wait at the end of 
@@ -48,6 +54,9 @@ SESSION_CONFIGS = [
         then set to '1' (without quotes), otherwise set to '2' (without quotes) for two groups of buyers/sellers each with
         different sets of induced values.
         """
+        """custom_inducement: Set to 'True' (without quotes) if the list of inducements for buyers and sellers are to
+        be manually determined, otherwise set to 'False' (without quotes).
+        """            
         """num_induc_val_steps: The number of steps of induced values for each type of buyers/sellers.
         """
         """quant_at_indc_val: Enter the fixed number units endowed at each step of induced values. The default value at '0'
