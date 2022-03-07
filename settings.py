@@ -6,22 +6,22 @@ SESSION_CONFIGS = [
         display_name="Double Auction",
         app_sequence=['double_auction'],
         hide_total_rounds=True,
-        num_rounds=20,
+        num_rounds=3,
         num_demo_participants=6,
         num_bots=6,
-        timeout_seconds=30,
+        timeout_seconds=90,
         wait_timeout_seconds=5,
-        multiple_unit_trading=False,
+        multiple_unit_trading=True,
         relative_price_imp="self",
-        num_types=1,
-        custom_inducement=True,
-        num_induc_val_steps=6,
-        quant_at_indc_val=1,
-        eq_indc_val_step=5,
-        step_diff_per_type=3,
+        num_types=2,
+        custom_inducement=False,
+        num_induc_val_steps=5,
+        quant_at_indc_val=3,
+        eq_indc_val_step=3,
+        step_diff_per_type=5,
         min_induc_val=20,
-        step_up_aft_ev_round=20,
-        step_up_by=0,
+        step_up_aft_ev_round=1,
+        step_up_by=2,
         inducement_round1_buyer_type1=[[56,1],[53,1],[50,1],[47,1],[44,1],[41,1]],
         inducement_round1_buyer_type2=[],
         inducement_round1_seller_type1=[[29,1],[32,1],[35,1],[38,1],[41,1],[44,1]],
@@ -52,19 +52,20 @@ SESSION_CONFIGS = [
         """
         """num_types: If all buyers are to have the same set of induced values (and similar logic applies to the sellers), 
         then set to '1' (without quotes), otherwise set to '2' (without quotes) for two groups of buyers/sellers each with
-        different sets of induced values.
+        different sets of induced values. You MUST specify this even when you are using custom inducements.
         """
         """custom_inducement: Set to 'True' (without quotes) if the list of inducements for buyers and sellers are to
         be manually determined, otherwise set to 'False' (without quotes).
         """            
-        """num_induc_val_steps: The number of steps of induced values for each type of buyers/sellers.
+        """num_induc_val_steps: The number of steps of induced values for each type of buyers/sellers. You MUST specify this 
+        even when you are using custom inducements.
         """
         """quant_at_indc_val: Enter the fixed number units endowed at each step of induced values. The default value at '0'
         (without quotes) implies a declining endowment from one step of induced values to the next for buyers/sellers.
         """
         """eq_indc_val_step: The number of steps of induced values for each type of buyers/sellers for which it is, in 
         theory, optimal for them to carry out trade. This number must be less than or equal to the number you entered for
-        'num_induc_val_steps'.
+        'num_induc_val_steps'. You MUST specify this even when you are using custom inducements.
         """
         """step_diff_per_type: The amount of difference between two consecutive steps of induced values for each type 
         of buyers/sellers. 
@@ -73,10 +74,10 @@ SESSION_CONFIGS = [
         """
         """step_up_aft_ev_round: After every 'x' number of rounds, subjects' induced values at each step will be shifted upwards
         by a given amount. Here you are required to enter the number 'x'. This number must be less than or equal to
-        the number you entered for 'num_rounds'.
+        the number you entered for 'num_rounds'. You MUST specify this even when you are using custom inducements.
         """
         """step_up_by: The amount by which, after every 'x' number of rounds, subjects' induced values at each step will 
-        be shifted upward.
+        be shifted upward. You MUST specify this even when you are using custom inducements.
         """
     ),
     dict(

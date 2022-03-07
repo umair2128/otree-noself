@@ -8,10 +8,11 @@
     <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
-    <!-- Bootstrap Font Icon CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+
+    <!-- Linking Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css" integrity="sha384-zCbKRCUGaJDkqS1kPbPd7TveP5iyJE0EjAuZQTgFLD2ylzuqKfdKlfG/eSrtxUkn" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-fQybjgWLrvvRgtW6bFlB7jaZrFsaBXjsOMm/tB9LTS58ONXgqbR9W8oWht/amnpF" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
 
 
     <div class="container">
@@ -231,12 +232,12 @@
     <script>
         let my_id = js_vars.id_in_group; //The ID of the player
         let is_buyer = js_vars.is_buyer; //'True' if the player is a buyer, 'False' otherwise
-        let is_bot = js_vars.is_bot;
-        let tot_eq_units = js_vars.tot_eq_units;
-        let timeout_seconds = js_vars.timeout_seconds;
+        let is_bot = js_vars.is_bot; //'True' if the player is a Bot
+        let tot_eq_units = js_vars.tot_eq_units; // This variable is basically used for the AI player(s) or Bot(s) to ensure that they will place bids/asks only for the number of units for which it is optimal for them to trade
+        let timeout_seconds = js_vars.timeout_seconds; // The time for which trading takes place in each round/period of the experiment
         let this_round = js_vars.cur_round; //The current round/period
         let total_rounds = js_vars.total_rounds; //The total number of rounds/periods in the experiment
-        let hide_tot_rounds = js_vars.hide_tot_rounds;
+        let hide_tot_rounds = js_vars.hide_tot_rounds; //'True' if players don't are not shown the total number of rounds in the experiment
         let upd_ind = js_vars.inducement; //Stores the player's inducements and all of the other relevant data for the experiment
 
         let upd_bids = []; //Stores the frequency list of outstanding bids
@@ -264,7 +265,7 @@
         let event_messages = document.getElementById('event_messages'); //The div which is populated by messages
         let hist_text = document.getElementById('hist_text');  //The caption of the summary table (e.g., "Period 1 Summary")
 
-        let time_left_last_rec = 16;
+        let time_left_last_rec = 16; //Bots stop making offers when the last event (offer or transaction) recorded is below this number
 
         window.onbeforeunload = function() { //This function stores the data being displayed on screen (and data in background used to generate it) in web browser's storage so that the page can be repopulated with it upon page refresh by the player (NOTE: This won't work if the browser window was closed and the link was reloaded)
             sessionStorage.setItem("bids", JSON.stringify(upd_bids));
@@ -289,13 +290,14 @@
             hist_round = this_round //This variable is used to cycle through the summary table for different rounds (defaults to the current round on page load/refresh)
             set_things_up(); //Prepares all of the data to be presented to the player on the screen and displays it
 
-            if(is_bot){
+            if(is_bot){ //If the player in question is a bot then all decision buttons are disabled and a large text is displayed on the page indicating that the player in question is a bot
                 document.getElementById("my_offer").disabled = true;
                 document.getElementById("my_quant1").disabled = true;
                 document.getElementById('btn-mkt-order').style.visibility="hidden";
                 document.getElementById('btn-lim-order').style.visibility="hidden";
                 document.getElementById('page_title').innerHTML = "Trading Phase " + "&#128314;" + "<red>" + " THIS PLAYER IS A BOT!" + "</red>";
 
+                // The following two blocks of code determine when will a bot make an offer (bid or ask), for how many units, and at what price such that, in theory, the bot has enough time to trade the optimal number of units
                 var precision = 100; // 2 decimals
                 var max_int = ((timeout_seconds)/tot_eq_units) + 0.05*timeout_seconds
                 var min_int = ((timeout_seconds)/tot_eq_units) - 0.05*timeout_seconds
@@ -364,7 +366,7 @@
             create_offer_table(); //Shows the header of the the offer table (situated in the middle column under the 'Buyer/Seller Actions' div)
             pop_comp_trades_ticker(ticker_data,this_round); //Populates the 'Completed Trades' ticker with completed trades (if any)
 
-            if (upd_bids !== [] || upd_asks !== []){ //If there have been any bids or asks, then populate the bid and ask tables displayed under the 'Queues' heading and also populate the best bid and ask table under the 'Bid-Ask Spread' heading
+            if (upd_bids.length != 0 || upd_asks.length != 0){ //If there have been any bids or asks, then populate the bid and ask tables displayed under the 'Queues' heading and also populate the best bid and ask table under the 'Bid-Ask Spread' heading
                 pop_bid_ask_table(upd_bids, upd_asks);
                 pop_best_bid_ask_table(upd_bids, upd_asks);
             }
@@ -379,9 +381,9 @@
                 $("#btn-lim-order").attr('disabled', false);
             }
 
-            if (is_buyer && upd_asks !==[] && Number.parseInt(my_quant2.value) > 0){ //Enables the market order (Buy/Sell) button if the player is a buyer, there are any outstanding asks in the queue, and there is some positive 'Quantity' in the relevant textbox
+            if (is_buyer && upd_asks.length != 0 && Number.parseInt(my_quant2.value) > 0){ //Enables the market order (Buy/Sell) button if the player is a buyer, there are any outstanding asks in the queue, and there is some positive 'Quantity' in the relevant textbox
                 $("#btn-mkt-order").attr('disabled', false);
-            } else if (!is_buyer && upd_bids !== [] && Number.parseInt(my_quant2.value) > 0){ //Enables the market order (Buy/Sell) button if the player is a seller, there are any outstanding bids in the queue, and there is some positive 'Quantity' in the relevant textbox
+            } else if (!is_buyer && upd_bids.length != 0 && Number.parseInt(my_quant2.value) > 0){ //Enables the market order (Buy/Sell) button if the player is a seller, there are any outstanding bids in the queue, and there is some positive 'Quantity' in the relevant textbox
                 $("#btn-mkt-order").attr('disabled', false);
             }
 
@@ -743,13 +745,13 @@
             }
 
             if (is_buyer==true){
-                if (upd_asks !== []){
+                if (upd_asks.length != 0){
                     val_2 = unit_asks
                 } else {
                     val_2 = 0
                 }
             } else {
-                if (upd_bids !== []){
+                if (upd_bids.length != 0){
                     val_2 = unit_bids
                 } else {
                     val_2 = 0
@@ -977,9 +979,9 @@
                 if (id_sender == my_id){
                     if (order_type == 'limit'){
                         if (is_buyer){
-                            event_messages.innerHTML += time_event + ": Submitted bid for " + offer_qt + ((offer_qt > 1) ? (" units at ") : (" unit at ")) + Number(offer_amt).toFixed(2) + "." + "<br>"
+                            event_messages.innerHTML += time_event.substring(0, time_event.length-4) + ": Submitted bid for " + offer_qt + ((offer_qt > 1) ? (" units at ") : (" unit at ")) + Number(offer_amt).toFixed(2) + "." + "<br>"
                         } else {
-                            event_messages.innerHTML += time_event + ": Submitted ask for " + offer_qt + ((offer_qt > 1) ? (" units at ") : (" unit at ")) + Number(offer_amt).toFixed(2) + "." + "<br>"
+                            event_messages.innerHTML += time_event.substring(0, time_event.length-4) + ": Submitted ask for " + offer_qt + ((offer_qt > 1) ? (" units at ") : (" unit at ")) + Number(offer_amt).toFixed(2) + "." + "<br>"
                         }
                     }
                 }
@@ -989,27 +991,28 @@
                     if (news[i][0] == my_id) {
                         if (news[i][5] == 'limit'){
                             if (news[i][7] == 'bid'){
-                                event_messages.innerHTML += news[i][4] + ": Bid resulted in the trade of " + news[i][3]  + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                                event_messages.innerHTML += news[i][4].substring(0, news[i][4].length-4) + ": Bid resulted in the trade of " + news[i][3]  + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             } else {
-                                event_messages.innerHTML += news[i][4] + ": Bid accepted for " +  news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                                event_messages.innerHTML += news[i][4].substring(0, news[i][4].length-4) + ": Bid accepted for " +  news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             }
                         } else {
-                            event_messages.innerHTML += news[i][4] + ": Purchased " + news[i][3]  + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                            event_messages.innerHTML += news[i][4].substring(0, news[i][4].length-4) + ": Purchased " + news[i][3]  + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                         }
                     } else if (news[i][1] == my_id) {
                         if (news[i][6] == 'limit'){
                             if (news[i][7] == 'ask'){
-                                event_messages.innerHTML += news[i][4] + ": Ask resulted in the trade of " + news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                                event_messages.innerHTML += news[i][4].substring(0, news[i][4].length-4) + ": Ask resulted in the trade of " + news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             } else {
-                                event_messages.innerHTML += news[i][4] + ": Ask accepted for " + news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                                event_messages.innerHTML += news[i][4].substring(0, news[i][4].length-4) + ": Ask accepted for " + news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                             }
                         } else {
-                            event_messages.innerHTML += news[i][4] + ": Sold " + news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
+                            event_messages.innerHTML += news[i][4].substring(0, news[i][4].length-4) + ": Sold " + news[i][3] + ((news[i][3] > 1) ? (" units at ") : (" unit at ")) + Number(news[i][2]).toFixed(2) + "." + "<br>"
                         }
                     }
                 }
             }
         }
+
 
         $("#btn-first").on('click', function(e){
             hist_round = 1;
