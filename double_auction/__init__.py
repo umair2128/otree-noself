@@ -661,7 +661,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
             offers.append([
                 player.round_number, # 0. Current round number
                 str(time_event), # 1. Time when the bid/ask offer was placed
-                agg_units_traded + 1, # 2. Records the unit number for which the offer is made (e.g., a bid for the second unit)
+                int(copy.deepcopy(agg_units_traded)) + 1, # 2. Records the unit number for which the offer is made (e.g., a bid for the second unit)
                 player.id_in_group, # 3. ID of the player who placed the order
                 "buyer" if player.is_buyer==True else "seller", # 4. Indicates whether the player who placed the order is a 'buyer' or a 'seller'
                 "bid" if player.is_buyer==True else "ask", # 5. Indicates whether a 'bid' or an 'ask' offer was made
@@ -741,11 +741,17 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
 
                 buyer_inducement[buyer.round_number - 1] = sorted(sorted(buyer_inducement[buyer.round_number - 1], key=lambda x: x[3]), key=lambda x:x[0], reverse=True) # Buyer's updated copied data for the current trading period after trade has taken place is being sorted here
 
+                buyer_payoff_new = float(copy.deepcopy(buyer.payoff_new))
+                buyer_session_payoff = float(copy.deepcopy(buyer.session_payoff))
+
                 for j in range(len(buyer_inducement[buyer.round_number - 1])-1, -1, -1):
                     if buyer_inducement[buyer.round_number - 1][j][5] == float(price):
-                        buyer.payoff_new += buyer_inducement[buyer.round_number - 1][j][6] # Existing buyer payoff for the current round is augmented by the profit obtained from buying the current unit
-                        buyer.session_payoff += buyer_inducement[buyer.round_number - 1][j][6] # The aggregate payoff from trade in all previous as well as the current round is being augmented here
+                        buyer_payoff_new += buyer_inducement[buyer.round_number - 1][j][6] # Existing buyer payoff for the current round is augmented by the profit obtained from buying the current unit
+                        buyer_session_payoff += buyer_inducement[buyer.round_number - 1][j][6] # The aggregate payoff from trade in all previous as well as the current round is being augmented here
                         break
+
+                buyer.payoff_new = float(copy.deepcopy(buyer_payoff_new))
+                buyer.session_payoff = float(copy.deepcopy(buyer_session_payoff))
 
                 buyer.inducement = str(copy.deepcopy(buyer_inducement)) # The original data for the buyer is being updated here with the copied data
 
@@ -775,11 +781,17 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
 
                 seller_inducement[seller.round_number - 1] = sorted(sorted(seller_inducement[seller.round_number - 1], key=lambda x: x[3]), key=lambda x:x[0]) # Seller's updated copied data for the current trading period after trade has taken place is being sorted here
 
+                seller_payoff_new = float(copy.deepcopy(seller.payoff_new))
+                seller_session_payoff = float(copy.deepcopy(seller.session_payoff))
+
                 for k in range(len(seller_inducement[seller.round_number - 1]) - 1, -1, -1):
                     if seller_inducement[seller.round_number - 1][k][5] == float(price):
-                        seller.payoff_new += seller_inducement[seller.round_number - 1][k][6] # Existing seller payoff for the current round is augmented by the profit obtained from selling the current unit
-                        seller.session_payoff += seller_inducement[seller.round_number - 1][k][6] # The aggregate payoff from trade in all previous as well as the current round is being augmented here
+                        seller_payoff_new += seller_inducement[seller.round_number - 1][k][6] # Existing seller payoff for the current round is augmented by the profit obtained from selling the current unit
+                        seller_session_payoff += seller_inducement[seller.round_number - 1][k][6] # The aggregate payoff from trade in all previous as well as the current round is being augmented here
                         break
+
+                seller.payoff_new = float(copy.deepcopy(seller_payoff_new))
+                seller.session_payoff = float(copy.deepcopy(seller_session_payoff))
 
                 seller.inducement = str(copy.deepcopy(seller_inducement)) # The original data for the seller is being updated here with the copied data
 
@@ -811,7 +823,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                         transactions.append([
                             buyer.round_number, # 0. Round number
                             str(time_tx), # 1. Time when the transaction took place
-                            agg_units_traded + 1, # 2. Unit number (on the demand/supply schedule) for which the transaction was carried out
+                            int(copy.deepcopy(agg_units_traded)) + 1, # 2. Unit number (on the demand/supply schedule) for which the transaction was carried out
                             buyer.id_in_group, # 3. ID of the buyer
                             buyer_order_type, # 4. Type of order (i.e., market or limit) which the buyer had placed which resulted in this transaction
                             seller.id_in_group, # 5. ID of the seller
@@ -834,7 +846,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                         transactions.append([
                             buyer.round_number,
                             str(time_tx),
-                            agg_units_traded + 1 + news[0][3],
+                            int(copy.deepcopy(agg_units_traded)) + 1 + news[0][3],
                             buyer.id_in_group,
                             buyer_order_type,
                             seller.id_in_group,
@@ -938,10 +950,12 @@ class Trading(Page):
     def js_vars(player: Player):
         if player.round_number == 1:
             player.session_payoff = 0
+            player.payoff_new = 0
         # The following block of code copies the data from the previous round/trading period for each player at the beginning of each round after round 1 as well as the session payoff/earnings from the previous round which are then augemented by profit earned from trades in the current round
         if player.round_number > 1:
             player.inducement = str(copy.deepcopy(player.in_round(player.round_number-1).inducement))
             player.session_payoff = player.in_round(player.round_number - 1).session_payoff
+            player.payoff_new = 0
 
         return dict(
             id_in_group=player.id_in_group, is_buyer=player.is_buyer, is_bot=player.is_bot, tot_eq_units=player.tot_eq_units,
