@@ -950,12 +950,12 @@ class Trading(Page):
     def js_vars(player: Player):
         if player.round_number == 1:
             player.session_payoff = 0
+            player.payoff_new = 0
         # The following block of code copies the data from the previous round/trading period for each player at the beginning of each round after round 1 as well as the session payoff/earnings from the previous round which are then augemented by profit earned from trades in the current round
         if player.round_number > 1:
             player.inducement = str(copy.deepcopy(player.in_round(player.round_number-1).inducement))
             player.session_payoff = player.in_round(player.round_number - 1).session_payoff
-
-        player.payoff_new = 0
+            player.payoff_new = 0
 
         return dict(
             id_in_group=player.id_in_group, is_buyer=player.is_buyer, is_bot=player.is_bot, tot_eq_units=player.tot_eq_units,
