@@ -192,20 +192,21 @@
 <script>
     let offers = {{offers | safe}}; // A detailed list of all the bid/ask offers in the experiment
     let transactions = {{transactions | safe}}; // A detailed list of all the successful transactions in the experiment
-    let buyers_data = {{buyers_data | safe}}; // The data used to draw the demand curve based on induced values
-    let sellers_data = {{sellers_data | safe}}; // The data used to draw the supply curve based on induced values
     let total_rounds = {{total_rounds | safe}}; // Total number of periods/rounds in the experiment
-    let players_data = {{players_data | safe}}; // Detailed data on players' role, inducements, trades, and payoff in the experiment
-    let buyers_actual_surplus = {{buyers_actual_surplus | safe}}; // List of total buyer/consumer surplus in each period of the experiment
-    let sellers_actual_surplus = {{sellers_actual_surplus | safe}}; // List of total seller/producer surplus in each period of the experiment
-    let total_actual_surplus = {{total_actual_surplus | safe}}; // List of total buyer + seller surplus in each period of the experiment
+    let num_types = {{ num_types | safe }}; // The number of types of buyers and sellers (either '1' or '2')
+    let num_induc_val_steps = {{ num_induc_val_steps | safe }}; // The number of steps of induced values for each type of buyers/sellers
+    let num_buyers = {{ num_buyers | safe }}; // Total number of buyers
+    let num_sellers = {{ num_sellers | safe }}; // Total number of sellers
+    let type1_buyers = {{ type1_buyers | safe }}; // The number of 'type 1' buyers
+    let type1_sellers = {{ type1_sellers | safe }}; // The number of 'type 1' sellers
+    let buyer_presets = {{ buyer_presets | safe }}; // Detailed data on induced values and quantities endowed at each induced value for buyers when there is only one type of buyers
+    let seller_presets = {{ seller_presets | safe }}; // Detailed data on induced values and quantities endowed at each induced value for sellers when there is only one type of sellers
+    let buyer_type1_presets = {{ buyer_type1_presets | safe }}; // Detailed data on induced values and quantities endowed at each induced value for 'type 1' buyers when there are two types of buyers
+    let buyer_type2_presets = {{ buyer_type2_presets | safe }}; // Detailed data on induced values and quantities endowed at each induced value for 'type 2' buyers when there are two types of buyers
+    let seller_type1_presets = {{ seller_type1_presets | safe }}; // Detailed data on induced values and quantities endowed at each induced value for 'type 1' sellers when there are two types of sellers
+    let seller_type2_presets = {{ seller_type2_presets | safe }}; // Detailed data on induced values and quantities endowed at each induced value for 'type 2' sellers when there are two types of sellers
     let total_surplus = {{ total_surplus | safe }}; // The predicted total surplus (same in each period of the experiment)
-    let volume = {{volume | safe}}; // List of total units traded in each period of the experiment
-    let contracts = {{contracts | safe}}; // List to total number of trade contracts in each period of the experiment
-    let avg_price = {{avg_price | safe}}; // List of average trade price for each period of the experiment
-    let num_bids = {{num_bids | safe}}; // List of total number of bid offers in each period of the experiment
-    let num_asks = {{num_asks | safe}}; // List of total number of ask offers in each period of the experiment
-    let efficiency = {{efficiency | safe}}; // List of efficiency in each period of the experiment
+    let players_data = {{players_data | safe}}; // Detailed data on players' role, inducements, trades, and payoff in the experiment
     let data_avail_for_rounds = {{ data_avail_for_rounds | safe }}; // Indicator for the conclusion of the experiment. '0' when the experiment is in progress
     let exp_start_time = {{exp_start_time | safe}}; // Indicator for the experiment getting underway. '0' when the experiment is yet to start
     let timeout_seconds = {{ timeout_seconds | safe }}; // Total seconds for which trading takes place in each period
@@ -214,18 +215,18 @@
 
     console.log('offers: ', offers);
     console.log('transactions: ', transactions);
-    console.log('buyers_data: ', buyers_data);
-    console.log('sellers_data: ', sellers_data);
     console.log('players_data: ', players_data);
-    console.log('buyers_actual_surplus: ', buyers_actual_surplus);
-    console.log('sellers_actual_surplus: ', sellers_actual_surplus);
-    console.log('total_actual_surplus: ', total_actual_surplus);
-    console.log('total_surplus: ', total_surplus);
     console.log ('data_avail_for_rounds: ', data_avail_for_rounds);
     console.log('exp_start_time: ', exp_start_time);
     console.log('timeout_seconds: ', timeout_seconds);
     console.log('wait_timeout_seconds: ', wait_timeout_seconds);
     console.log('start_timestamp: ', start_timestamp);
+    console.log('buyer_presets: ', buyer_presets);
+    console.log('seller_presets: ', seller_presets);
+    console.log('buyer_type1_presets: ', buyer_type1_presets);
+    console.log('buyer_type2_presets: ', buyer_type2_presets);
+    console.log('seller_type1_presets: ', seller_type1_presets);
+    console.log('seller_type2_presets: ', seller_type2_presets);
 
     let hist_text = document.getElementById('hist_text'); // Caption for the Navigation Tab indicating the period for which the information is displayed
     let time_text = document.getElementById('time_text'); // The span where the text indicating the progress of the experiment sits
@@ -251,7 +252,9 @@
 
     window.onload = function () {
         refresh_btn.style.visibility="hidden"; // The 'Refresh' button, by default, is hidden when the page loads
-        setInterval(update_time_text, 1050); // Updates the text indicating the progress on the experiment after roughly every second
+        prepare_demand_supply_data(); // Prepares the data used to plot the demand and supply curves on the graph drawn under the 'Period Summary Graph' tab
+        prepare_exp_and_surplus_data(); // Prepares the data used to populate the 'Experiment Summary Table' and the 'Surplus Summary Table'
+        setInterval(update_time_text, 1100); // Updates the text indicating the progress on the experiment after roughly every second
         reset_hist_nav_buttons(); // On page load or refresh, this resets the navigation buttons panel to their period 1 state
         set_yaxis_limits(hist_round); // Sets the vertical axis lower and upper limits for the summary graph for the given period
         set_eq(hist_round); // This determines the equilibrium price range and the equilibrium quantity given the induced values in the period in question
@@ -267,6 +270,143 @@
         draw_graph(hist_round); // Draws the Period Summary Graph for the given period
         prep_exp_sum_gra_data(); // Prepares the data to be shown on the Experimental Summary Graph
         draw_graph_exp_sum(); // Draws the Experimental Summary Graph
+    }
+
+
+    function prepare_demand_supply_data(){
+        buyers_data = [];
+        sellers_data = [];
+
+        if (num_types == 2) {
+            for (var i = 0; i < total_rounds; i++) {
+                for (var j = 0; j < num_induc_val_steps; j++) {
+                    buyers_data.push([type1_buyers * parseInt(buyer_type1_presets[i][j][1]), buyer_type1_presets[i][j][0]], [(num_buyers - type1_buyers) * parseInt(buyer_type2_presets[i][j][1]), buyer_type2_presets[i][j][0]]);
+                    sellers_data.push([type1_sellers * parseInt(seller_type1_presets[i][j][1]), seller_type1_presets[i][j][0]], [(num_sellers - type1_sellers) * parseInt(seller_type2_presets[i][j][1]), seller_type2_presets[i][j][0]]);
+                }
+            }
+            buyers_data = gen_nested_list(buyers_data, 2 * num_induc_val_steps);
+            sellers_data = gen_nested_list(sellers_data, 2 * num_induc_val_steps);
+        } else {
+            for (var i = 0; i < total_rounds; i++) {
+                for (var j = 0; j < num_induc_val_steps; j++) {
+                    buyers_data.push([num_buyers * parseInt(buyer_presets[i][j][1]), buyer_presets[i][j][0]]);
+                    sellers_data.push([num_sellers * parseInt(seller_presets[i][j][1]), seller_presets[i][j][0]]);
+                }
+            }
+            buyers_data = gen_nested_list(buyers_data, num_induc_val_steps);
+            sellers_data = gen_nested_list(sellers_data, num_induc_val_steps);
+        }
+
+        for (var i = 0; i < buyers_data.length; i++){
+            buyers_data[i].push([0,0]);
+            buyers_data[i].push([0,Number.MAX_VALUE]);
+
+            buyers_data[i].sort((a,b) => b[1] - a[1]);
+        }
+
+        for (var i = 0; i < sellers_data.length; i++){
+            sellers_data[i].push([0,0]);
+            sellers_data[i].push([0,Number.MAX_VALUE]);
+
+            sellers_data[i].sort((a,b) => a[1] - b[1]);
+        }
+
+        let temp_buyers = JSON.parse(JSON.stringify(buyers_data)),
+            temp_sellers = JSON.parse(JSON.stringify(sellers_data));
+
+        for (var i = 0; i < buyers_data.length; i++){
+            for (var j = 1; j < buyers_data[i].length; j++){
+                buyers_data[i][j][0] = temp_buyers[i][j-1][0];
+                buyers_data[i][j][0] += buyers_data[i][j-1][0];
+            }
+        }
+
+        for (var i = 0; i < sellers_data.length; i++){
+            for (var j = 1; j < sellers_data[i].length; j++){
+                sellers_data[i][j][0] = temp_sellers[i][j-1][0];
+                sellers_data[i][j][0] += sellers_data[i][j-1][0];
+            }
+        }
+        console.log('buyers_data', buyers_data);
+        console.log('sellers_data', sellers_data);
+    }
+
+
+    function prepare_exp_and_surplus_data(){
+        num_bids = Array(parseInt(total_rounds)).fill(0);
+        num_asks = Array(parseInt(total_rounds)).fill(0);
+        contracts = Array(parseInt(total_rounds)).fill(0);
+        volume = Array(parseInt(total_rounds)).fill(0);
+        avg_price = Array(parseInt(total_rounds)).fill(0);
+        total_actual_surplus = Array(parseInt(total_rounds)).fill(0);
+        buyers_actual_surplus = Array(parseInt(total_rounds)).fill(0);
+        sellers_actual_surplus = Array(parseInt(total_rounds)).fill(0);
+        efficiency = Array(parseInt(total_rounds)).fill(0);
+
+        if (data_avail_for_rounds != 0){
+
+            if (offers.length != 0) {
+                for (var i = 0; i < total_rounds; i++) {
+                    for (var j = 0; j < offers.length; j++){
+                        if (offers[j][0] == Number(i+1) && offers[j][5] == "bid"){
+                            num_bids[i] += 1;
+                        }
+                        if (offers[j][0] == Number(i+1) && offers[j][5] == "ask"){
+                            num_asks[i] += 1;
+                        }
+                    }
+                }
+            }
+
+            if (transactions.length != 0) {
+                for (var i = 0; i < total_rounds; i++) {
+                    let numerator = 0,
+                        denominator = 0;
+
+                    for (var j = 0; j < transactions.length; j++){
+                        if (transactions[j][0] == Number(i+1)){
+                            numerator += parseFloat(transactions[j][7])*parseInt(transactions[j][8]);
+                            denominator += parseInt(transactions[j][8]);
+
+                            contracts[i] += 1;
+                            volume[i] += parseInt(transactions[j][8]);
+                        }
+                    }
+
+                    if(denominator != 0){
+                        avg_price[i] = numerator/denominator;
+                    }
+                }
+            }
+
+            if (players_data.length != 0) {
+                for (var i = 0; i < total_rounds; i++) {
+                    for (var j = 0; j < players_data.length; j++){
+                        if (players_data[j][2] == Number(i+1)){
+                            total_actual_surplus[i] += parseFloat(players_data[j][4]);
+
+                            if (players_data[j][1] == 'buyer'){
+                                buyers_actual_surplus[i] += parseFloat(players_data[j][4]);
+                            } else {
+                                sellers_actual_surplus[i] += parseFloat(players_data[j][4]);
+                            }
+                        }
+                    }
+                    efficiency[i] = Number(100*parseFloat(total_actual_surplus[i])/parseFloat(total_surplus)).toFixed(2)
+                }
+            }
+
+        }
+
+        console.log('num_bids: ', num_bids);
+        console.log('num_asks: ', num_asks);
+        console.log('contracts: ', contracts);
+        console.log('volume: ', volume);
+        console.log('avg_price: ', avg_price);
+        console.log('total_actual_surplus: ', total_actual_surplus);
+        console.log('buyers_actual_surplus: ', buyers_actual_surplus);
+        console.log('sellers_actual_surplus: ', sellers_actual_surplus);
+        console.log('efficiency: ', efficiency);
     }
 
 
@@ -1194,6 +1334,15 @@
                 $("#amount_h_es").val($("#slider-range_es").slider("values", 1))
             });
         });
+    }
+
+
+    function gen_nested_list(arr, len) {
+      var chunks = [], i = 0, n = arr.length;
+      while (i < n) {
+        chunks.push(arr.slice(i, i += len));
+      }
+      return chunks;
     }
 
 

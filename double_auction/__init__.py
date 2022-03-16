@@ -27,238 +27,52 @@ class Subsession(BaseSubsession):
 
 
 def vars_for_admin_report(subsession):
+    data_avail_for_rounds = Group.data_avail_for_rounds # Real-time data on the 'Admin Report' page resulted in the page crashing, therefore now the data will only be displayed once the experiment is over. This variable changes values from '0' when the experiment ends.
+
     num_buyers = 0
     num_sellers = 0
+    type1_buyers = 0
+    type1_sellers = 0
 
-    exp_start_time = Group.exp_start_time # Used to inform the experimenter about the start of the experiment.
-    data_avail_for_rounds = Group.data_avail_for_rounds # Real-time data on the 'Admin Report' page resulted in the page crashing, therefore now the data will only be displayed once the experiment is over. This variable changes values from '0' when the experiment ends.
-    timeout_seconds = Group.timeout_seconds # This and the next variable are used to calculate and then display the expected run-time for the experiment. This gives the experimenter the idea as to when to expect the results of the experiment to be displayed.
-    wait_timeout_seconds = Group.wait_timeout_seconds
+    buyer_presets = str([])
+    seller_presets = str([])
+    buyer_type1_presets = str([])
+    buyer_type2_presets = str([])
+    seller_type1_presets = str([])
+    seller_type2_presets = str([])
 
-    # The following long block of code basically processes the data on inducements so that it can be presented using highcharts as stepped demand and supply curves shown under the 'Period Summary > Period Summary Graph' tab.
+    for p in subsession.get_players():
+        if p.is_buyer:
+            num_buyers += 1
+        else:
+            num_sellers += 1
+
     if subsession.session.num_types == 2:
-        type1_buyers = 0
-        type1_sellers = 0
-
         for p in subsession.get_players():
-            if p.is_buyer:
-                num_buyers += 1
-                if p.type == 1:
-                    type1_buyers += 1
-            else:
-                num_sellers += 1
-                if p.type == 1:
-                    type1_sellers += 1
+            if p.is_buyer and p.type == 1:
+                type1_buyers += 1
 
-        buyer_type1_data = [[[type1_buyers * int(subsession.session.buyer_type1_presets[j][i][1]),
-                              subsession.session.buyer_type1_presets[j][i][0]] for i in
-                             range(subsession.session.num_induc_val_steps)] for j in
-                            range(subsession.session.total_rounds)]
-        buyer_type2_data = [[[(num_buyers - type1_buyers) * int(subsession.session.buyer_type2_presets[j][i][1]),
-                              subsession.session.buyer_type2_presets[j][i][0]] for i in
-                             range(subsession.session.num_induc_val_steps)] for j in
-                            range(subsession.session.total_rounds)]
-        seller_type1_data = [[[type1_sellers * int(subsession.session.seller_type1_presets[j][i][1]),
-                               subsession.session.seller_type1_presets[j][i][0]] for i in
-                              range(subsession.session.num_induc_val_steps)] for j in
-                             range(subsession.session.total_rounds)]
-        seller_type2_data = [[[(num_sellers - type1_sellers) * int(subsession.session.seller_type2_presets[j][i][1]),
-                               subsession.session.seller_type2_presets[j][i][0]] for i in
-                              range(subsession.session.num_induc_val_steps)] for j in
-                             range(subsession.session.total_rounds)]
+            if not p.is_buyer and p.type == 1:
+                type1_sellers += 1
 
-        buyers_data = []
-
-        for i in range(subsession.session.total_rounds):
-            temp_1 = []
-            for j in range(subsession.session.num_induc_val_steps + 1):
-                if j < subsession.session.num_induc_val_steps:
-                    temp_1.append(buyer_type1_data[i][j])
-                    temp_1.append(buyer_type2_data[i][j])
-                else:
-                    temp_1.append([0, buyer_type2_data[i][j - 1][1] - (
-                    (buyer_type1_data[i][j - 1][1] - buyer_type2_data[i][j - 1][1]))])
-            buyers_data.append(temp_1)
-
-        for i in range(subsession.session.total_rounds):
-            for j in range(2 * subsession.session.num_induc_val_steps + 1):
-                if j > 0:
-                    buyers_data[i][j][0] += buyers_data[i][j - 1][0]
-
-        temp_2 = str(copy.deepcopy(buyers_data))
-        for i in range(subsession.session.total_rounds):
-            for j in range(2 * subsession.session.num_induc_val_steps + 1):
-                if j > 0:
-                    buyers_data[i][j][0] = ast.literal_eval(temp_2)[i][j - 1][0]
-                else:
-                    buyers_data[i][j][0] = 0
-
-        sellers_data = []
-
-        for i in range(subsession.session.total_rounds):
-            temp_1 = []
-            for j in range(subsession.session.num_induc_val_steps + 1):
-                if j < subsession.session.num_induc_val_steps:
-                    temp_1.append(seller_type1_data[i][j])
-                    temp_1.append(seller_type2_data[i][j])
-                else:
-                    temp_1.append([0, seller_type2_data[i][j - 1][1] + (
-                    (seller_type2_data[i][j - 1][1] - seller_type1_data[i][j - 1][1]))])
-            sellers_data.append(temp_1)
-
-        for i in range(subsession.session.total_rounds):
-            for j in range(2 * subsession.session.num_induc_val_steps + 1):
-                if j > 0:
-                    sellers_data[i][j][0] += sellers_data[i][j - 1][0]
-
-        temp_2 = str(copy.deepcopy(sellers_data))
-        for i in range(subsession.session.total_rounds):
-            for j in range(2 * subsession.session.num_induc_val_steps + 1):
-                if j > 0:
-                    sellers_data[i][j][0] = ast.literal_eval(temp_2)[i][j - 1][0]
-                else:
-                    sellers_data[i][j][0] = 0
-
-        for i in range(subsession.session.total_rounds):
-            sellers_data[i].append([0, 0])
-            sellers_data[i].sort(key=lambda x: x[1])
-            sellers_data[i][2 * subsession.session.num_induc_val_steps + 1][1] = 100000000000000000000000000000000000
-            buyers_data[i].append([0, 100000000000000000000000000000000000])
-            buyers_data[i].sort(key=lambda x: x[1], reverse=True)
-            buyers_data[i][2 * subsession.session.num_induc_val_steps + 1][1] = 0
-
-        diff_y_axis = []
-        max_y_axis = []
-        for i in range(subsession.session.total_rounds):
-            diff_y_axis.append(sellers_data[i][1][1])
-            max_y_axis.append(buyers_data[i][1][1] + diff_y_axis[i])
+        buyer_type1_presets = str(copy.deepcopy(subsession.session.buyer_type1_presets))
+        buyer_type2_presets = str(copy.deepcopy(subsession.session.buyer_type2_presets))
+        seller_type1_presets = str(copy.deepcopy(subsession.session.seller_type1_presets))
+        seller_type2_presets = str(copy.deepcopy(subsession.session.seller_type2_presets))
     else:
-        for p in subsession.get_players():
-            if p.is_buyer:
-                num_buyers += 1
-            else:
-                num_sellers += 1
-
-        buyer_data = [[[num_buyers * int(subsession.session.buyer_presets[j][i][1]),
-                              subsession.session.buyer_presets[j][i][0]] for i in
-                             range(subsession.session.num_induc_val_steps)] for j in
-                            range(subsession.session.total_rounds)]
-        seller_data = [[[num_sellers * int(subsession.session.seller_presets[j][i][1]),
-                               subsession.session.seller_presets[j][i][0]] for i in
-                              range(subsession.session.num_induc_val_steps)] for j in
-                             range(subsession.session.total_rounds)]
-
-        buyers_data = []
-
-        for i in range(subsession.session.total_rounds):
-            temp_1 = []
-            for j in range(subsession.session.num_induc_val_steps + 1):
-                if j < subsession.session.num_induc_val_steps:
-                    temp_1.append(buyer_data[i][j])
-                else:
-                    temp_1.append([0, buyer_data[i][j - 1][1] - (
-                    (buyer_data[i][j - 2][1] - buyer_data[i][j - 1][1]))])
-            buyers_data.append(temp_1)
-
-        for i in range(subsession.session.total_rounds):
-            for j in range(subsession.session.num_induc_val_steps + 1):
-                if j > 0:
-                    buyers_data[i][j][0] += buyers_data[i][j - 1][0]
-
-        temp_2 = str(copy.deepcopy(buyers_data))
-        for i in range(subsession.session.total_rounds):
-            for j in range(subsession.session.num_induc_val_steps + 1):
-                if j > 0:
-                    buyers_data[i][j][0] = ast.literal_eval(temp_2)[i][j - 1][0]
-                else:
-                    buyers_data[i][j][0] = 0
-
-        sellers_data = []
-
-        for i in range(subsession.session.total_rounds):
-            temp_1 = []
-            for j in range(subsession.session.num_induc_val_steps + 1):
-                if j < subsession.session.num_induc_val_steps:
-                    temp_1.append(seller_data[i][j])
-                else:
-                    temp_1.append([0, seller_data[i][j - 1][1] + (
-                    (seller_data[i][j - 1][1] - seller_data[i][j - 2][1]))])
-            sellers_data.append(temp_1)
-
-        for i in range(subsession.session.total_rounds):
-            for j in range(subsession.session.num_induc_val_steps + 1):
-                if j > 0:
-                    sellers_data[i][j][0] += sellers_data[i][j - 1][0]
-
-        temp_2 = str(copy.deepcopy(sellers_data))
-        for i in range(subsession.session.total_rounds):
-            for j in range(subsession.session.num_induc_val_steps + 1):
-                if j > 0:
-                    sellers_data[i][j][0] = ast.literal_eval(temp_2)[i][j - 1][0]
-                else:
-                    sellers_data[i][j][0] = 0
-
-        for i in range(subsession.session.total_rounds):
-            sellers_data[i].append([0, 0])
-            sellers_data[i].sort(key=lambda x: x[1])
-            sellers_data[i][subsession.session.num_induc_val_steps + 1][1] = 100000000000000000000000000000000000
-            buyers_data[i].append([0, 100000000000000000000000000000000000])
-            buyers_data[i].sort(key=lambda x: x[1], reverse=True)
-            buyers_data[i][subsession.session.num_induc_val_steps + 1][1] = 0
+        buyer_presets = str(copy.deepcopy(subsession.session.buyer_presets))
+        seller_presets = str(copy.deepcopy(subsession.session.seller_presets))
 
     # The following block of code prepares the data to be shown under various tabs on the 'Admin Report' page.
-    total_surplus = subsession.session.total_surplus # The predicted total surplus for the experiment (same for all periods).
-
-    num_bids = [0 for i in range(subsession.session.total_rounds)] # The list of the total number of bids in each period of the experiment.
-    num_asks = [0 for i in range(subsession.session.total_rounds)] # The list of the total number of asks in each period of the experiment.
-
-    contracts = [0 for i in range(subsession.session.total_rounds)] # The list of the total number of contracts in each period of the experiment.
-    volume = [0 for i in range(subsession.session.total_rounds)] # The list of the total numbers of units traded in each period of the experiment.
-
-    avg_price = [0 for i in range(subsession.session.total_rounds)] # The list of the average trade price in each period of the experiment.
-
-    total_actual_surplus = [0 for i in range(subsession.session.total_rounds)] # The list of the total actual surplus in each period of the experiment.
-    buyers_actual_surplus = [0 for i in range(subsession.session.total_rounds)] # The list of total actual buyers surplus in each period of the experiment.
-    sellers_actual_surplus = [0 for i in range(subsession.session.total_rounds)] # The list of total actual sellers surplus in each period of the experiment.
-    efficiency = [0 for i in range(subsession.session.total_rounds)] # The list of efficiency in each period of the experiment.
-
-    players_data = []  # A nested list which is populated with detailed data on players' role, inducements, trades, and payoff in the experiment
-
     offers = [] # Detailed data on all bid and ask offers made in the experiment.
     transactions = [] # Detailed data on all completed transactions in the experiment.
 
+    players_data = []  # A nested list which is populated with detailed data on players' role, inducements, trades, and payoff in the experiment
+
     # The following block of code is executed once the experiment has completed.
     if data_avail_for_rounds != 0:
-        if len(ast.literal_eval(Group.offers)) != 0: # Populates bid and ask lists with the total number of bid/ask offers made in each period of the experiment.
-            offers = ast.literal_eval(Group.offers)
-            for i in range(subsession.session.total_rounds):
-                for j in range(len(ast.literal_eval(Group.offers))):
-                    num_bids[i] += 1 if ast.literal_eval(Group.offers)[j][0] == i+1 and ast.literal_eval(Group.offers)[j][5] == "bid" else 0
-                    num_asks[i] += 1 if ast.literal_eval(Group.offers)[j][0] == i+1 and ast.literal_eval(Group.offers)[j][5] == "ask" else 0
-
-        if len(ast.literal_eval(Group.transactions)) != 0: # Populates the contracts, volume, and avg_price lists with relevant data for each period of the experiment.
-            transactions = ast.literal_eval(Group.transactions)
-            for i in range(subsession.session.total_rounds):
-                numerator = 0
-                denominator = 0
-                for j in range(len(ast.literal_eval(Group.transactions))):
-                    numerator += (ast.literal_eval(Group.transactions)[j][7]*ast.literal_eval(Group.transactions)[j][8]) if ast.literal_eval(Group.transactions)[j][0] == i+1 else 0
-                    denominator += ast.literal_eval(Group.transactions)[j][8] if ast.literal_eval(Group.transactions)[j][0] == i+1 else 0
-
-                    contracts[i] += 1 if ast.literal_eval(Group.transactions)[j][0] == i+1 else 0
-                    volume[i] += ast.literal_eval(Group.transactions)[j][8] if ast.literal_eval(Group.transactions)[j][0] == i+1 else 0
-
-                if denominator != 0:
-                    avg_price[i] = numerator / denominator
-
-        for i in range(subsession.session.total_rounds): # Populates the efficiency list with data on efficiency for each period of the experiment.
-            for p in subsession.get_players():
-                total_actual_surplus[i] += p.in_round(i + 1).payoff_new
-                if p.is_buyer:
-                    buyers_actual_surplus[i] += p.in_round(i + 1).payoff_new
-                else:
-                    sellers_actual_surplus[i] += p.in_round(i + 1).payoff_new
-            efficiency[i] = round(100*total_actual_surplus[i] / total_surplus, 2)
+        offers = ast.literal_eval(Group.offers)
+        transactions = ast.literal_eval(Group.transactions)
 
         for p in subsession.get_players(): # Populates the players_data nested list with detailed data on each player for each period of the experiment.
             for i in range(subsession.session.total_rounds):
@@ -272,26 +86,27 @@ def vars_for_admin_report(subsession):
                 ])
 
     return dict(
-        buyers_data=buyers_data,
-        sellers_data=sellers_data,
         total_rounds=subsession.session.total_rounds,
+        num_types=subsession.session.num_types,
+        num_induc_val_steps=subsession.session.num_induc_val_steps,
+        num_buyers=num_buyers,
+        num_sellers=num_sellers,
+        type1_buyers=type1_buyers,
+        type1_sellers=type1_sellers,
+        buyer_presets=buyer_presets,
+        seller_presets = seller_presets,
+        buyer_type1_presets = buyer_type1_presets,
+        buyer_type2_presets = buyer_type2_presets,
+        seller_type1_presets = seller_type1_presets,
+        seller_type2_presets = seller_type2_presets,
         offers=str(copy.deepcopy(offers)),
         transactions=str(copy.deepcopy(transactions)),
         players_data=str(copy.deepcopy(players_data)),
-        num_bids=str(copy.deepcopy(num_bids)),
-        num_asks=str(copy.deepcopy(num_asks)),
-        contracts=str(copy.deepcopy(contracts)),
-        volume=str(copy.deepcopy(volume)),
-        avg_price=str(copy.deepcopy(avg_price)),
-        total_actual_surplus=str(copy.deepcopy(total_actual_surplus)),
-        buyers_actual_surplus=str(copy.deepcopy(buyers_actual_surplus)),
-        sellers_actual_surplus=str(copy.deepcopy(sellers_actual_surplus)),
-        efficiency=str(copy.deepcopy(efficiency)),
-        total_surplus=total_surplus,
+        total_surplus=subsession.session.total_surplus,
         data_avail_for_rounds=data_avail_for_rounds,
-        exp_start_time=exp_start_time,
-        timeout_seconds=timeout_seconds,
-        wait_timeout_seconds=wait_timeout_seconds,
+        exp_start_time=Group.exp_start_time,
+        timeout_seconds=Group.timeout_seconds,
+        wait_timeout_seconds=Group.wait_timeout_seconds,
     )
 
 
