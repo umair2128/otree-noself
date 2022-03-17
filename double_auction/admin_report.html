@@ -596,8 +596,8 @@
         min_offers = Math.min.apply(Math,period_offers);
         max_transactions = Math.max.apply(Math,period_transactions);
         min_transactions = Math.min.apply(Math,period_transactions);
-        max_y = Math.max(Math.max(buyers_data[hist_round-1][1][1],sellers_data[hist_round-1][sellers_data[hist_round-1].length - 2][1]), max_offers, max_transactions) + 1; // Note for self (Umair): Either make the code more flexible or restrict the minimum number of induced value steps to 2
-        min_y = Math.max(Math.min(Math.min(sellers_data[hist_round-1][1][1],buyers_data[hist_round-1][buyers_data[hist_round-1].length - 2][1]), min_offers, min_transactions) - 1,0); // Note for self (Umair): Either make the code more flexible or restrict the minimum number of induced value steps to 2
+        max_y = Math.max(Math.max(buyers_data[hist_round-1][1][1],sellers_data[hist_round-1][((sellers_data[hist_round-1].length > 1) ? sellers_data[hist_round-1].length - 2 : 0)][1]), max_offers, max_transactions) + 1;
+        min_y = Math.max(Math.min(Math.min(sellers_data[hist_round-1][1][1],buyers_data[hist_round-1][((buyers_data[hist_round-1].length > 1) ? buyers_data[hist_round-1].length - 2 : 0)][1]), min_offers, min_transactions) - 1,0);
 
         console.log('min_y: ', min_y, ', max_y: ', max_y);
     }

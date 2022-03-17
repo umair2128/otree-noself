@@ -772,17 +772,16 @@ class Trading(Page):
 
     @staticmethod
     def before_next_page(player:Player, timeout_happened):
-        # The following block of code copies data from the previous round/trading period for each player at the beginning of each round after round 1
-        player_inducement = ast.literal_eval(player.inducement)
-
-        for i in range(player.round_number):
-            player_inducement[i] = ast.literal_eval(player.in_round(i + 1).inducement)[i]
-
         Group.bids = str([])
         Group.asks = str([])
         Group.agg_units_traded = 0
 
         if player.round_number == Group.total_rounds:
+            player_inducement = ast.literal_eval(player.inducement)
+
+            for i in range(player.round_number):
+                player_inducement[i] = ast.literal_eval(player.in_round(i + 1).inducement)[i]
+
             player.inducement = str(copy.deepcopy(player_inducement))
             Group.data_avail_for_rounds = player.group.round_number # Indicates the end of the experiment by replacing the '0' in the 'data_avail_for_rounds' variable with the number of rounds of the experiment
 
