@@ -254,7 +254,7 @@
         refresh_btn.style.visibility="hidden"; // The 'Refresh' button, by default, is hidden when the page loads
         prepare_demand_supply_data(); // Prepares the data used to plot the demand and supply curves on the graph drawn under the 'Period Summary Graph' tab
         prepare_exp_and_surplus_data(); // Prepares the data used to populate the 'Experiment Summary Table' and the 'Surplus Summary Table'
-        setInterval(update_time_text, 1100); // Updates the text indicating the progress on the experiment after roughly every second
+        setInterval(update_time_text, 1000); // Updates the text indicating the progress on the experiment after roughly every second
         reset_hist_nav_buttons(); // On page load or refresh, this resets the navigation buttons panel to their period 1 state
         set_yaxis_limits(hist_round); // Sets the vertical axis lower and upper limits for the summary graph for the given period
         set_eq(hist_round); // This determines the equilibrium price range and the equilibrium quantity given the induced values in the period in question
@@ -464,7 +464,7 @@
             if (curr_values[0]==start_values[0] && curr_values[1]==start_values[1] && curr_values[2]==start_values[2]){ // Ensures that the current year, month, and day are the same as those for the start of the experiment
                 curr_time_in_sec = curr_values[3]*3600 + curr_values[4]*60 + curr_values[5];
 
-                time_since_start_in_sec = curr_time_in_sec - start_time_in_sec;
+                time_since_start_in_sec = parseInt((curr_time_in_sec - start_time_in_sec)*0.9);
                 time_since_start = format_time(time_since_start_in_sec);
             } else {
                 time_since_start = "";
@@ -1337,7 +1337,7 @@
     }
 
 
-    function gen_nested_list(arr, len) {
+    function gen_nested_list(arr, len) { // Nests every 'len' number of items together into a sub-list within the parent list called 'arr'
       var chunks = [], i = 0, n = arr.length;
       while (i < n) {
         chunks.push(arr.slice(i, i += len));

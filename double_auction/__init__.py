@@ -267,7 +267,6 @@ def creating_session(subsession: Subsession):
             for i in range(session.eq_indc_val_step):
                 participant.tot_eq_units += int(ast.literal_eval(participant.inducement)[0][i][1])
 
-
         type1_players = 0
         type2_players = 0
         total_surplus = 0
@@ -304,6 +303,7 @@ def creating_session(subsession: Subsession):
     Group.exp_start_time = 0 # Stores the machine readable time for the start of the experiment (i.e., the time when the first period begins)
     Group.data_avail_for_rounds = 0 # Used for the Admin Report page. When this variable takes on a value other than '0' then this is used to indicate that the experiment has ended
     Group.timestamp_ms = 0 # Time when each period of trading begins in milliseconds. All times are recorded to the nearest millisecond (although they are displayed to the players and the experimenter to the nearest second). This level of detail is neccessary, amongst other things, to correctly sort the bid, ask, and trade events displayed under the 'Period Summary > Period Summary Table' tab
+    Group.agg_units_traded = 0
 
     # The following block of code ensures that at the beginning of each round/sub-session, the session-wide participant variables are copied for each player (Some of these are later updated and re-populated with data from all previous rounds)
     for player in subsession.get_players():
@@ -337,6 +337,7 @@ class Group(BaseGroup):
     data_avail_for_rounds = models.IntegerField(initial=0) # Indicates the end of the experiment for data to be shown on the 'Admin Report' page
     exp_start_time = models.IntegerField(initial=0) # Time when the experiment begins
     timestamp_ms = models.IntegerField(initial=0) # Time when each period of trading begins in milliseconds
+    agg_units_traded = models.IntegerField(initial=0)
 
 
 
@@ -379,26 +380,14 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
     sellers = [p for p in players if not p.is_buyer] # The list of players assigned the role of a seller
     news = [] # Used to populate the 'Messages' div on the Trading page after a trade has taken place (messages pertaining to market orders are also reflected here)
     event = None # Used to populate the 'Messages' div on the Trading page after a player submits a limit order (i.e. a bid or an ask)
-    agg_units_traded = 0 # Used to identify the unit for which an offer is made or trade is completed on demand/supply curve
 
-    bids_incl_outstanding = ast.literal_eval(Group.bids) # Stores the list of all outstanding bid prices for the current round as well as the outstanding bids from the previous round (i.e., those bids which did not result in a trade)
-    asks_incl_outstanding = ast.literal_eval(Group.asks) # Stores the list of all outstanding ask prices for the current round as well as the outstanding asks from the previous round (i.e., those asks which did not result in a trade)
-
-    bids_new = []  # Stores the list of all outstanding bid prices for the current round only
-    asks_new = [] # Stores the list of all outstanding ask prices for the current round only
-
-    if len(bids_incl_outstanding) != 0:
-        for i in range(len(bids_incl_outstanding)):
-            if bids_incl_outstanding[i][0] == player.round_number: #Appends only the outstanding bids from the current round to the 'bids_new' list
-                bids_new.append(bids_incl_outstanding[i])
-
-    if len(asks_incl_outstanding) != 0:
-        for i in range(len(asks_incl_outstanding)):
-            if asks_incl_outstanding[i][0] == player.round_number: #Appends only the outstanding asks from the current round to the 'asks_new' list
-                asks_new.append(asks_incl_outstanding[i])
+    bids_new = ast.literal_eval(Group.bids) # Stores the list of all outstanding bid prices for the current round
+    asks_new = ast.literal_eval(Group.asks) # Stores the list of all outstanding ask prices for the current round
 
     offers = ast.literal_eval(Group.offers) # Populated with details about all of the bid/ask offers
     transactions = ast.literal_eval(Group.transactions) # Populated with details about all completed transactions
+
+    agg_units_traded = copy.deepcopy(Group.agg_units_traded) # Used to identify the unit for which an offer is made or trade is completed on demand/supply curve
 
     # Data will be sent here (and some other data will be sent back) whenever a player submits a limit order (i.e. clicks on the 'Bid'/'Ask' button) or a market order (i.e. clicks on the'Buy'/'Sell' button)
     if data:
@@ -467,11 +456,6 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
         event = dict(id_sender=player.id_in_group, time_event=time_event,
                      offer_amt=player.current_offer, offer_qt=player.current_quant,order_type=type_of_order)
 
-        # The following block basically determines as to how many units have been traded so far in the round
-        for p in sellers:
-            for i in range(len(ast.literal_eval(p.inducement)[p.round_number - 1])):
-                agg_units_traded += ast.literal_eval(p.inducement)[p.round_number - 1][i][2]
-
         if player.order_type == 'limit':
             offers.append([
                 player.round_number, # 0. Current round number
@@ -483,8 +467,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                 player.current_offer, # 6. The unit bid/ask price for the offer which has been made
                 player.current_quant, # 7. Number of units for which the offer has been made at the given price
             ])
-
-        Group.offers = str(copy.deepcopy(offers))
+            Group.offers = str(copy.deepcopy(offers))
 
         total_units = 0 # This variable records the total number of units traded per each completed trade for a given seller/buyer pair
 
@@ -525,6 +508,8 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                     if bids_new[i][0] == buyer.round_number and bids_new[i][1] == buyer.id_in_group:
                         bids_new.pop(i)
                         break
+
+                Group.agg_units_traded += 1
 
                 # The following two nested lists copy buyers and sellers data which is later updated to reflect completed trade(s)
                 buyer_inducement = ast.literal_eval(buyer.inducement)
@@ -792,6 +777,10 @@ class Trading(Page):
 
         for i in range(player.round_number):
             player_inducement[i] = ast.literal_eval(player.in_round(i + 1).inducement)[i]
+
+        Group.bids = str([])
+        Group.asks = str([])
+        Group.agg_units_traded = 0
 
         if player.round_number == Group.total_rounds:
             player.inducement = str(copy.deepcopy(player_inducement))
