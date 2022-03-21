@@ -844,15 +844,24 @@
 
 
         function liveRecv(data) {
-            let {bids, asks, current_offer, current_quant, inducement, news, event, payoff, session_payoff, offers, transactions, det_bids, det_asks, order_type} = data;
+            let {/*bids, asks,*/ current_offer, current_quant, inducement, news, event, payoff, session_payoff, offers, transactions, det_bids, det_asks, order_type} = data;
 
             console.log(data);
 
             $("#btn-mkt-order").attr('disabled', true);
 
-            upd_bids = JSON.parse(JSON.stringify(bids));
-            upd_asks = JSON.parse(JSON.stringify(asks));
+            //upd_bids = JSON.parse(JSON.stringify(bids));
+            //upd_asks = JSON.parse(JSON.stringify(asks));
+
+            upd_bids = prepare_bid_freq(JSON.parse(JSON.stringify(det_bids))).sort((a,b) => b[0] - a[0]);
+            upd_asks = prepare_ask_freq(JSON.parse(JSON.stringify(det_asks))).sort((a,b) => b[0] - a[0]);
+
             upd_ind = JSON.parse(JSON.stringify(inducement));
+
+            //console.log('bid_freq (JS): ', prepare_bid_freq(JSON.parse(JSON.stringify(bids_new))).sort((a,b) => b[0] - a[0]));
+            //console.log('bid_freq (PYTHON): ', JSON.parse(JSON.stringify(bids)));
+            //console.log('ask_freq (JS): ',prepare_ask_freq(JSON.parse(JSON.stringify(asks_new))).sort((a,b) => b[0] - a[0]));
+            //console.log('ask_freq (PYTHON): ', JSON.parse(JSON.stringify(asks)));
 
             var last_time_offers
             var last_time_transactions
@@ -885,9 +894,9 @@
 
             multi_unit_trading_check();
 
-            if (is_buyer && asks.length !== 0 && parseInt(my_quant2.value) > 0){
+            if (is_buyer && upd_asks.length !== 0 && parseInt(my_quant2.value) > 0){ // Had 'asks.length' earlier
                 $("#btn-mkt-order").attr('disabled', false);
-            } else if (!is_buyer && bids.length !== 0 && parseInt(my_quant2.value) > 0){
+            } else if (!is_buyer && upd_bids.length !== 0 && parseInt(my_quant2.value) > 0){ // Had 'bids.length' earlier
                 $("#btn-mkt-order").attr('disabled', false);
             }
 
@@ -931,8 +940,8 @@
                 outstanding_quant = current_quant;
             }
 
-            pop_bid_ask_table(bids, asks);
-            pop_best_bid_ask_table(bids, asks);
+            pop_bid_ask_table(upd_bids, upd_asks); // Had 'bids' and 'asks', respectively, instead
+            pop_best_bid_ask_table(upd_bids, upd_asks); // Had 'bids' and 'asks', respectively, instead
 
             period_earnings = payoff;
             session_earnings = session_payoff;
@@ -954,6 +963,53 @@
                 update_max_quant2(inducement);
                 update_offer_table(outstanding_offer,outstanding_quant);
             }
+        }
+
+
+        function prepare_bid_freq(bids){
+            let bids_amounts = [],
+                bids_freq = [];
+
+            if (bids.length != 0){
+                for (var i = 0; i < bids.length; i++){
+                    if(bids[i][0] == this_round){
+                        bids_amounts.push(bids[i][2]);
+                    }
+                }
+                bids_freq = get_array_freq(bids_amounts);
+            }
+            return bids_freq
+        }
+
+
+        function prepare_ask_freq(asks){
+            let asks_amounts = [],
+                asks_freq = [];
+
+            if (asks.length != 0){
+                for (var i = 0; i < asks.length; i++){
+                    if(asks[i][0] == this_round){
+                        asks_amounts.push(asks[i][2]);
+                    }
+                }
+                asks_freq = get_array_freq(asks_amounts);
+            }
+            return asks_freq
+        }
+
+
+        function get_array_freq(arr){
+            let result = [];
+
+            arr.forEach(function(e) {
+              if (!this[e]) {
+                this[e] = [e, 0];
+                result.push(this[e])
+              }
+              this[e][1] ++
+            }, {})
+
+            return result
         }
 
 
