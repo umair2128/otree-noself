@@ -949,7 +949,7 @@
 
             update_messages(event, news);
 
-            if (news.length != 0) { //If the player was looking at the summary table for any of the previous rounds and in the meanwhile s/he has successfully traded, then this reverts to the summary table for the current round so that the player can check details of the trade
+            if (news.length != 0) { // If the player was looking at the summary table for any of the previous rounds and in the meanwhile s/he has successfully traded, then this reverts to the summary table for the current round so that the player can check details of the trade
                 for (var i = 0; i < news.length; i++){
                     if (news[i][0] == my_id || news[i][1] == my_id) {
                         hist_round = this_round;
