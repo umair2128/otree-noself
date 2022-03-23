@@ -104,7 +104,7 @@ def vars_for_admin_report(subsession):
         players_data=str(copy.deepcopy(players_data)),
         total_surplus=subsession.session.total_surplus,
         data_avail_for_rounds=data_avail_for_rounds,
-        exp_start_time=Group.exp_start_time,
+        exp_start_time=int(Group.exp_start_time),
         timeout_seconds=Group.timeout_seconds,
         wait_timeout_seconds=Group.wait_timeout_seconds,
     )
@@ -300,9 +300,9 @@ def creating_session(subsession: Subsession):
     Group.bids = str(copy.deepcopy([])) # A less-detailed list of bids (Primarily used for populating the bid/ask table)
     Group.asks = str(copy.deepcopy([])) # A less-detailed list of asks (Primarily used for populating the bid/ask table)
     Group.hide_total_rounds = subsession.session.config['hide_total_rounds'] # Total number of periods won't be displayed when this is set to 'True' in SESSION CONFIGS
-    Group.exp_start_time = 0 # Stores the machine readable time for the start of the experiment (i.e., the time when the first period begins)
+    Group.exp_start_time = "0" # Stores the machine readable time for the start of the experiment (i.e., the time when the first period begins)
     Group.data_avail_for_rounds = 0 # Used for the Admin Report page. When this variable takes on a value other than '0' then this is used to indicate that the experiment has ended
-    Group.timestamp_ms = 0 # Time when each period of trading begins in milliseconds. All times are recorded to the nearest millisecond (although they are displayed to the players and the experimenter to the nearest second). This level of detail is neccessary, amongst other things, to correctly sort the bid, ask, and trade events displayed under the 'Period Summary > Period Summary Table' tab
+    Group.timestamp_ms = "0" # Time when each period of trading begins in milliseconds. All times are recorded to the nearest millisecond (although they are displayed to the players and the experimenter to the nearest second). This level of detail is neccessary, amongst other things, to correctly sort the bid, ask, and trade events displayed under the 'Period Summary > Period Summary Table' tab
     Group.agg_units_traded = 0
 
     # The following block of code ensures that at the beginning of each round/sub-session, the session-wide participant variables are copied for each player (Some of these are later updated and re-populated with data from all previous rounds)
@@ -323,7 +323,7 @@ def creating_session(subsession: Subsession):
 
 
 class Group(BaseGroup):
-    start_timestamp = models.IntegerField() # Captures the time at which all players arrive and the experiment begins
+    start_timestamp = models.StringField() # Captures the time at which all players arrive and the experiment begins
     total_rounds = models.IntegerField() # Captures the total number of rounds/periods in the experiment (Picked up from SESSION_CONFIGS)
     timeout_seconds = models.IntegerField() # The amount of time (in seconds) each subject will have in every period for carrying out trades (Picked up from SESSION_CONFIGS)
     wait_timeout_seconds = models.IntegerField() # The amount of time (in seconds) for which the subjects would have to wait at the end of each trading period before the next period begins (Picked up from SESSION_CONFIGS)
@@ -335,8 +335,8 @@ class Group(BaseGroup):
     asks = models.LongStringField() # A nested list of all outstanding asks at a given point in time
     hide_total_rounds = models.BooleanField() # When 'True', the total number of rounds in the experiment are hidden from the players
     data_avail_for_rounds = models.IntegerField(initial=0) # Indicates the end of the experiment for data to be shown on the 'Admin Report' page
-    exp_start_time = models.IntegerField(initial=0) # Time when the experiment begins
-    timestamp_ms = models.IntegerField(initial=0) # Time when each period of trading begins in milliseconds
+    exp_start_time = models.StringField() # Time when the experiment begins
+    timestamp_ms = models.StringField() # Time when each period of trading begins in milliseconds
     agg_units_traded = models.IntegerField(initial=0)
 
 
@@ -444,7 +444,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
         sorted(asks_new,key=lambda x:x[2])
 
         #The following three variables are used to record the time on the countdown timer when a buyer/seller submits a limit order (i.e. bid/ask) in the following format (minute(integer):second(2 digit format with preceding '0' for 9 seconds or less):milliseconds(2 digit format with preceding '00' for 9 miliseconds or less and so on))
-        event_time = Group.timeout_seconds*1000 + Group.timestamp_ms - time.time()*1000
+        event_time = int(Group.timeout_seconds)*1000 + int(Group.timestamp_ms) - time.time()*1000
         event_tot_sec, event_mili_sec = divmod(event_time, 1000)
         event_min, event_sec = divmod(event_tot_sec, 60)
 
@@ -596,7 +596,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                 seller.inducement = str(copy.deepcopy(seller_inducement)) # The original data for the seller is being updated here with the copied data
 
                 # The following three variables are used to record the time on the countdown timer when a trade takes place in the following format (M:SS:mmm - where M: minutes, SS: Seconds, mmm: Miliseconds)
-                tx_time = Group.timeout_seconds*1000 + Group.timestamp_ms - time.time()*1000
+                tx_time = int(Group.timeout_seconds)*1000 + int(Group.timestamp_ms) - time.time()*1000
                 tx_tot_sec, tx_mili_sec = divmod(tx_time, 1000)
                 tx_min, tx_sec = divmod(tx_tot_sec, 60)
                 if tx_time > 0:
@@ -735,11 +735,11 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
 class WaitToStart(WaitPage):
     @staticmethod
     def after_all_players_arrive(group: Group):
-        Group.timestamp_ms = int(time.time()*1000) # Stores the time (to the nearest millisecond) for the start of each period of the experiment
-        Group.start_timestamp = int(Group.timestamp_ms/1000) # Stores the time (to the nearest second) for the start of each period of the experiment
+        Group.timestamp_ms = str(int(time.time()*1000)) # Stores the time (to the nearest millisecond) for the start of each period of the experiment
+        Group.start_timestamp = str(int(int(Group.timestamp_ms)/1000)) # Stores the time (to the nearest second) for the start of each period of the experiment
 
         if group.round_number == 1:
-            Group.exp_start_time = Group.start_timestamp # Stores the time (to the nearest second) for the start of the experiment (i.e., start of the first period of the experiment)
+            Group.exp_start_time = str(Group.start_timestamp) # Stores the time (to the nearest second) for the start of the experiment (i.e., start of the first period of the experiment)
 
 
 
@@ -768,7 +768,7 @@ class Trading(Page):
     @staticmethod
     def get_timeout_seconds(group: Group):
         #return Group.timeout_seconds
-        return Group.timeout_seconds + Group.start_timestamp - time.time()
+        return int(Group.timeout_seconds) + int(Group.start_timestamp) - time.time()
 
     @staticmethod
     def before_next_page(player:Player, timeout_happened):
