@@ -809,7 +809,11 @@ class MyWaitPage(Page):
             session_payoff=player.session_payoff, wait_timeout=Group.wait_timeout_seconds, hide_tot_rounds = Group.hide_total_rounds
         )
 
-
+    @staticmethod
+    def error_message(player: Player, values):
+        group = player.group
+        if not group.is_finished:
+            return "Experiment is still in progress."
 
 
 class Results(Page):
