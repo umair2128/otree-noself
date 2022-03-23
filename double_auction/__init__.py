@@ -691,27 +691,8 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
         sorted(bids_new, key=lambda x: x[2])
         sorted(asks_new, key=lambda x: x[2])
 
-        # bids_for_freq = []
-        # asks_for_freq = []
-        #
-        # if len(bids_new) != 0:
-        #     for i in range(len(bids_new)):
-        #         if bids_new[i][0]==player.round_number:
-        #             bids_for_freq.append(bids_new[i][2])
-        #
-        # if len(asks_new) != 0:
-        #     for i in range(len(asks_new)):
-        #         if asks_new[i][0] == player.round_number:
-        #             asks_for_freq.append(asks_new[i][2])
-        #
-        # # The following two lists construct a frequency list for bids and asks, respectively which are then used to populate the bid/ask tables
-        # bids_freq = sorted([[float(x), bids_for_freq.count(x)] for x in set(bids_for_freq)], key=lambda x: x[0], reverse=True)
-        # asks_freq = sorted([[float(x), asks_for_freq.count(x)] for x in set(asks_for_freq)], key=lambda x: x[0], reverse=True)
-
         return {
             p.id_in_group: dict(
-                #bids=bids_freq,
-                #asks=asks_freq,
                 current_offer=p.current_offer,
                 current_quant=p.current_quant,
                 inducement=ast.literal_eval(p.inducement),
@@ -740,6 +721,7 @@ class WaitToStart(WaitPage):
 
         if group.round_number == 1:
             Group.exp_start_time = str(Group.start_timestamp) # Stores the time (to the nearest second) for the start of the experiment (i.e., start of the first period of the experiment)
+
 
 
 
