@@ -509,6 +509,9 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                         bids_new.pop(i)
                         break
 
+                Group.bids = str(copy.deepcopy(bids_new))
+                Group.asks = str(copy.deepcopy(asks_new))
+
                 Group.agg_units_traded += 1
 
                 # The following two nested lists copy buyers and sellers data which is later updated to reflect completed trade(s)
@@ -540,6 +543,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                             break
 
                 buyer_inducement[buyer.round_number - 1] = sorted(sorted(buyer_inducement[buyer.round_number - 1], key=lambda x: x[3]), key=lambda x:x[0], reverse=True) # Buyer's updated copied data for the current trading period after trade has taken place is being sorted here
+                buyer.inducement = str(copy.deepcopy(buyer_inducement)) # The original data for the buyer is being updated here with the copied data
 
                 buyer_payoff_new = float(copy.deepcopy(buyer.payoff_new))
                 buyer_session_payoff = float(copy.deepcopy(buyer.session_payoff))
@@ -552,8 +556,6 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
 
                 buyer.payoff_new = float(copy.deepcopy(buyer_payoff_new))
                 buyer.session_payoff = float(copy.deepcopy(buyer_session_payoff))
-
-                buyer.inducement = str(copy.deepcopy(buyer_inducement)) # The original data for the buyer is being updated here with the copied data
 
                 for i in range(len(seller_inducement[seller.round_number - 1])): # Iterates over the copied data of the seller for the round in question
                     if seller_inducement[seller.round_number - 1][i][2] < seller_inducement[seller.round_number - 1][i][1]: # Check if quantity sold at the ith step of induced values for the given round is less than quantity endowed (implying that not all units endowed at this step have been sold yet), othwerwise go to the next step of induced values
@@ -580,6 +582,7 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                             break
 
                 seller_inducement[seller.round_number - 1] = sorted(sorted(seller_inducement[seller.round_number - 1], key=lambda x: x[3]), key=lambda x:x[0]) # Seller's updated copied data for the current trading period after trade has taken place is being sorted here
+                seller.inducement = str(copy.deepcopy(seller_inducement)) # The original data for the seller is being updated here with the copied data
 
                 seller_payoff_new = float(copy.deepcopy(seller.payoff_new))
                 seller_session_payoff = float(copy.deepcopy(seller.session_payoff))
@@ -592,8 +595,6 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
 
                 seller.payoff_new = float(copy.deepcopy(seller_payoff_new))
                 seller.session_payoff = float(copy.deepcopy(seller_session_payoff))
-
-                seller.inducement = str(copy.deepcopy(seller_inducement)) # The original data for the seller is being updated here with the copied data
 
                 # The following three variables are used to record the time on the countdown timer when a trade takes place in the following format (M:SS:mmm - where M: minutes, SS: Seconds, mmm: Miliseconds)
                 tx_time = Group.timeout_seconds*1000 + Group.timestamp_ms - time.time()*1000
@@ -676,9 +677,6 @@ def live_method(player: Player, data): # Whenever a buyer or a seller submits a 
                 if seller.current_quant == 0:
                     seller.current_offer = 0
                     seller.order_type = ''
-
-            Group.bids = str(copy.deepcopy(bids_new))
-            Group.asks = str(copy.deepcopy(asks_new))
 
             # This caters to the case in which there is not enough quantity available to fulfill a buyer or a seller's outstanding order
             if (player.is_buyer and len(asks_new)==0) or (not player.is_buyer and len(bids_new)==0):
