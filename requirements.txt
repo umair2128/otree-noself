@@ -1,6 +1,6 @@
 # oTree-may-overwrite-this-file
 # IF YOU MODIFY THIS FILE, remove these comments. 
 # otherwise, oTree will automatically overwrite it.
-otree>=5.0.7
-psycopg2>=2.8.4
-sentry-sdk>=0.7.9
+otree>=5.7.2
+psycopg2>=2.9.3
+sentry-sdk>=1.5.8

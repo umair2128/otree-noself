@@ -172,6 +172,12 @@ LANGUAGE_CODE = 'en'
 REAL_WORLD_CURRENCY_CODE = 'USD'
 USE_POINTS = True
 
+DATABASE_URL = 'postgres://postgres@localhost/django_db'
+
+#DEBUG = False
+
+#AUTH_LEVEL = STUDY
+
 ADMIN_USERNAME = 'admin'
 # for security, best to set admin password in an environment variable
 ADMIN_PASSWORD = environ.get('OTREE_ADMIN_PASSWORD')
