@@ -785,11 +785,7 @@ class Trading(Page):
             player.inducement = str(copy.deepcopy(player_inducement))
             Group.data_avail_for_rounds = player.group.round_number # Indicates the end of the experiment by replacing the '0' in the 'data_avail_for_rounds' variable with the number of rounds of the experiment
 
-    @staticmethod
-    def error_message(player: Player, values):
-        group = player.group
-        if not group.is_finished:
-            return "Experiment is still in progress."
+
 
 
 class MyWaitPage(Page):
@@ -809,11 +805,7 @@ class MyWaitPage(Page):
             session_payoff=player.session_payoff, wait_timeout=Group.wait_timeout_seconds, hide_tot_rounds = Group.hide_total_rounds
         )
 
-    @staticmethod
-    def error_message(player: Player, values):
-        group = player.group
-        if not group.is_finished:
-            return "Experiment is still in progress."
+
 
 
 class Results(Page):
